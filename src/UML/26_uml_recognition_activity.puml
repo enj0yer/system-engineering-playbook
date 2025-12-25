@@ -1,0 +1,119 @@
+@startuml UML_Recognition_Activity
+
+title UML Activity Diagram - Процесс распознавания лица
+
+|Recognition Service|
+start
+
+:Подключиться к\nRTSP потоку камеры;
+
+note right
+  rtsp://camera_ip:554/stream
+  Codec: H.264/H.265
+  Resolution: 1920×1080, 25 FPS
+end note
+
+repeat
+  :Захватить кадр\nиз потока;
+  
+  note right
+    Sampling: каждый 3-й кадр
+    Effective rate: ~8 FPS
+  end note
+  
+  :Декодировать\nH.264 → RGB;
+  
+  :Детекция лиц\n(RetinaFace);
+  
+  note right
+    GPU inference
+    Time: ~50ms
+  end note
+  
+  if (Лица обнаружены?) then (нет)
+    :Пропустить кадр;
+  else (да)
+    
+    fork
+      :Извлечь BBox\nи landmarks;
+      
+      :Выровнять лицо\n(alignment);
+      
+      :Resize 112×112;
+      
+      :Генерация embedding\n(ArcFace GPU);
+      
+      note right
+        512-dim vector
+        Time: ~100ms
+      end note
+      
+    fork again
+      :Crop изображение лица;
+      
+      :Сохранить в MinIO\n(асинхронно);
+      
+    end fork
+    
+    :Поиск в Faiss\nвекторной БД;
+    
+    note right
+      Cosine similarity
+      Top-1 result
+      Time: ~10-20ms
+    end note
+    
+    if (Сходство ≥ 0.6?) then (да)
+      :Найден User ID;
+      
+      :Получить данные\nпользователя;
+      
+      if (Данные в Redis?) then (да)
+        :Читать из кэша;
+      else (нет)
+        :Запрос PostgreSQL;
+        :Кэшировать в Redis;
+      endif
+      
+      :Сформировать событие\nrecognition.face;
+      
+      note right
+        {
+          event_id,
+          user_id,
+          confidence: 0.97,
+          camera_id,
+          timestamp,
+          image_url
+        }
+      end note
+      
+    else (нет)
+      :Неизвестное лицо;
+      
+      :Событие\n"unknown_face";
+      
+      note right
+        Алерт охране
+        Сохранить фото для проверки
+      end note
+    endif
+    
+    :Публиковать в Kafka\n(async);
+    
+    fork
+      :Обновить метрики\nPrometheus;
+    end fork
+    
+  endif
+  
+repeat while (Поток активен?) is (да)
+->нет;
+
+:Закрыть RTSP\nсоединение;
+
+:Освободить\nресурсы GPU;
+
+stop
+
+@enduml

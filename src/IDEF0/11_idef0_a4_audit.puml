@@ -1,0 +1,203 @@
+@startuml IDEF0_A4_Audit
+!define RECTANGLE class
+
+skinparam defaultTextAlignment center
+skinparam classBackgroundColor LightYellow
+skinparam classBorderColor Black
+skinparam arrowColor Black
+
+title IDEF0 - Декомпозиция A4: Аудит и логирование
+
+' Входы
+rectangle "События\nраспознавания" as input1 #LightGreen
+rectangle "Решения\nо доступе" as input2 #LightGreen
+rectangle "Системные\nсобытия" as input3 #LightGreen
+rectangle "Изменения\nконфигурации" as input4 #LightGreen
+
+' Подфункции A4
+rectangle "**A4.1**\n\nСБОР И\nСТРУКТУРИРОВАНИЕ\nСОБЫТИЙ" as A41 #LightSkyBlue
+rectangle "**A4.2**\n\nИНДЕКСАЦИЯ\nИ ХРАНЕНИЕ" as A42 #LightSkyBlue
+rectangle "**A4.3**\n\nГЕНЕРАЦИЯ\nОТЧЕТОВ" as A43 #LightSkyBlue
+rectangle "**A4.4**\n\nВИЗУАЛИЗАЦИЯ\nИ АНАЛИТИКА" as A44 #LightSkyBlue
+
+' Выходы
+rectangle "Структурированные\nлоги (JSON)" as output1 #LightCoral
+rectangle "Архив\nсобытий" as output2 #LightCoral
+rectangle "Отчеты\n(PDF, Excel)" as output3 #LightCoral
+rectangle "Дашборды\nи графики" as output4 #LightCoral
+
+' Управление
+rectangle "Схема\nсобытий" as control1 #Lavender
+rectangle "Политики\nхранения" as control2 #Lavender
+rectangle "Шаблоны\nотчетов" as control3 #Lavender
+rectangle "Требования\nк метрикам" as control4 #Lavender
+
+' Механизмы
+rectangle "Kafka\nLogstash" as mech1 #Wheat
+rectangle "PostgreSQL\nElasticsearch\nMinIO" as mech2 #Wheat
+rectangle "Pandas\nJinja2\nWeasyPrint" as mech3 #Wheat
+rectangle "Grafana\nPrometheus" as mech4 #Wheat
+
+' Входные потоки
+input1 -right-> A41 : "recognition.face\nrecognition.vehicle"
+input2 -right-> A41 : "access.decision"
+input3 -down-> A41 : "service.health\nerrors"
+input4 -down-> A41 : "config.changes\nuser.updates"
+
+' Связи между подфункциями
+A41 -right-> A42 : "Нормализованные\nevent objects"
+A42 -down-> A43 : "Запрос данных\nза период"
+A42 -down-> A44 : "Метрики\nв реальном времени"
+
+' Выходные потоки
+A41 -down-> output1 : "Structured logs\n(JSON lines)"
+A42 -right-> output2 : "Long-term\nstorage"
+A43 -right-> output3 : "Formatted\nreports"
+A44 -right-> output4 : "Interactive\ndashboards"
+
+' Управление (сверху)
+control1 -down-> A41 : "JSON schema\nвалидация"
+control2 -down-> A42 : "Retention:\n1 год (logs)\n90 дней (images)"
+control3 -down-> A43 : "Report\ntemplates"
+control4 -down-> A44 : "KPIs:\nпропуск, нарушения"
+
+' Механизмы (снизу)
+mech1 -up-> A41 : "Агрегация\nсобытий"
+mech2 -up-> A42 : "Персистентное\nхранилище"
+mech3 -up-> A43 : "Генерация\nдокументов"
+mech4 -up-> A44 : "Визуализация\nметрик"
+
+note right of A41
+  **Источники событий**:
+  
+  **Kafka Topics**:
+  - `recognition.face` - распознавание лиц
+  - `recognition.vehicle` - распознавание авто
+  - `access.decision` - решения о доступе
+  - `notifications` - отправленные уведомления
+  - `audit.system` - системные события
+  
+  **Структура события**:
+  ```json
+  {
+    "event_id": "uuid",
+    "timestamp": "2025-11-18T10:30:00Z",
+    "event_type": "face_recognition",
+    "user_id": "12345",
+    "confidence": 0.97,
+    "camera_id": "cam_entrance_1",
+    "zone": "main_entrance",
+    "image_url": "s3://events/2025/11/18/...",
+    "metadata": {...}
+  }
+  ```
+  
+  **Обработка**:
+  - Валидация по JSON schema
+  - Обогащение данными (user name, role)
+  - Добавление геометок
+  - Anonymization (GDPR compliance)
+end note
+
+note right of A42
+  **Многоуровневое хранение**:
+  
+  **Hot storage** (0-7 дней):
+  - Elasticsearch: быстрый поиск
+  - Redis: кэш последних событий
+  - Доступ: <100ms
+  
+  **Warm storage** (7-90 дней):
+  - PostgreSQL: структурированные данные
+  - Индексация по: user_id, timestamp, event_type
+  
+  **Cold storage** (90-365 дней):
+  - MinIO (S3): архивные данные
+  - Compression: gzip
+  - Доступ: ~1-3 сек
+  
+  **Архивирование изображений**:
+  - Оригиналы: 90 дней
+  - После → удаление или архив
+  
+  **Backup**:
+  - Ежедневный инкрементальный бэкап
+  - Retention: 30 дней
+  
+  **Размер данных** (примерная оценка):
+  - События: ~100 MB/день
+  - Изображения: ~5 GB/день
+end note
+
+note right of A43
+  **Типы отчетов**:
+  
+  **1. Посещаемость**:
+  - Проходы по дням/неделям/месяцам
+  - Группировка по пользователям/подразделениям
+  - Статистика опозданий
+  
+  **2. Нарушения**:
+  - Отказы в доступе (с причинами)
+  - Попытки несанкционированного прохода
+  - Обнаружения из черного списка
+  
+  **3. Технические метрики**:
+  - Точность распознавания (confidence distribution)
+  - Время обработки (latency)
+  - Ошибки и downtime
+  
+  **4. Аудит действий**:
+  - Изменения в системе (кто, когда, что)
+  - История доступа к данным
+  
+  **Форматы экспорта**:
+  - PDF (форматированный отчет)
+  - Excel (сырые данные)
+  - CSV (для анализа)
+  
+  **Параметры**:
+  - Период (date range)
+  - Фильтры (users, zones, event types)
+  - Группировка (daily, weekly, monthly)
+  
+  **Генерация**: асинхронная (Celery task)
+end note
+
+note right of A44
+  **Дашборды в Grafana**:
+  
+  **Операционный дашборд**:
+  - События в реальном времени (stream)
+  - Текущие проходы (live counter)
+  - Статус камер и контроллеров
+  - Последние алерты
+  
+  **Аналитический дашборд**:
+  - Графики посещаемости (time series)
+  - Топ-10 пользователей по проходам
+  - Distribution confidence scores
+  - Heat map по часам дня
+  
+  **Технический дашборд**:
+  - CPU/GPU/RAM утилизация сервисов
+  - Latency распознавания (p50, p95, p99)
+  - Throughput (events/sec)
+  - Kafka lag
+  - Ошибки и исключения (error rate)
+  
+  **KPI метрики**:
+  - Доступность системы (uptime %)
+  - Точность распознавания (accuracy %)
+  - Среднее время прохода (avg time)
+  - False Accept Rate / False Reject Rate
+  
+  **Источники данных**:
+  - Prometheus: метрики приложений
+  - Elasticsearch: события и логи
+  - PostgreSQL: агрегированные данные
+  
+  **Обновление**: real-time (каждые 5-10 сек)
+end note
+
+@enduml

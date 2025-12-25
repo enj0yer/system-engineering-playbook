@@ -1,0 +1,162 @@
+@startuml IDEF0_A3_AccessControl
+!define RECTANGLE class
+
+skinparam defaultTextAlignment center
+skinparam classBackgroundColor LightYellow
+skinparam classBorderColor Black
+skinparam arrowColor Black
+
+title IDEF0 - Декомпозиция A3: Контроль доступа
+
+' Входы
+rectangle "Событие\nраспознавания" as input1 #LightGreen
+rectangle "Права доступа\nпользователя" as input2 #LightGreen
+rectangle "Текущее время\nи зона" as input3 #LightGreen
+
+' Подфункции A3
+rectangle "**A3.1**\n\nПРОВЕРКА\nПРАВ ДОСТУПА" as A31 #LightSkyBlue
+rectangle "**A3.2**\n\nПРОВЕРКА\nЧЕРНОГО СПИСКА" as A32 #LightSkyBlue
+rectangle "**A3.3**\n\nПРИНЯТИЕ\nРЕШЕНИЯ" as A33 #LightSkyBlue
+rectangle "**A3.4**\n\nУПРАВЛЕНИЕ\nБАРЬЕРОМ" as A34 #LightSkyBlue
+
+' Выходы
+rectangle "Решение:\nALLOW/DENY" as output1 #LightCoral
+rectangle "Команда\nконтроллеру" as output2 #LightCoral
+rectangle "Уведомление\nохране" as output3 #LightCoral
+rectangle "Событие для\nаудита" as output4 #LightCoral
+
+' Управление
+rectangle "Политики\nбезопасности" as control1 #Lavender
+rectangle "Админ:\nЧерный список" as control2 #Lavender
+rectangle "Логика принятия\nрешений (rules)" as control3 #Lavender
+rectangle "Конфигурация\nконтроллеров" as control4 #Lavender
+
+' Механизмы
+rectangle "PostgreSQL\nRedis cache" as mech1 #Wheat
+rectangle "PostgreSQL\nблокировки" as mech2 #Wheat
+rectangle "Decision\nEngine" as mech3 #Wheat
+rectangle "Wiegand/RS-485\nдрайверы" as mech4 #Wheat
+
+' Входные потоки
+input1 -right-> A31 : "User ID,\nconfidence,\ntimestamp"
+input2 -down-> A31 : "Роль, зоны,\nрасписание"
+input3 -down-> A31 : "Локация КПП,\nвремя"
+
+' Связи между подфункциями
+A31 -right-> A32 : "User ID +\nправа валидны"
+A32 -right-> A33 : "Результат\nпроверки списка"
+A31 -down-> A33 : "Статус проверки\nправ"
+A33 -right-> A34 : "Финальное\nрешение"
+
+' Выходные потоки
+A33 -right-> output1 : "ALLOW/DENY\n+ reason"
+A34 -right-> output2 : "OPEN/CLOSE\nbarrier"
+A33 -down-> output3 : "Alert (если DENY\nили черный список)"
+A34 -down-> output4 : "Decision event\n(Kafka)"
+
+' Управление (сверху)
+control1 -down-> A31 : "Правила:\nроли, зоны, время"
+control2 -down-> A32 : "Список\nзаблокированных"
+control3 -down-> A33 : "Алгоритм\nпринятия решения"
+control4 -down-> A34 : "Параметры\nконтроллеров"
+
+' Механизмы (снизу)
+mech1 -up-> A31 : "Хранение правил,\nкэширование"
+mech2 -up-> A32 : "Blacklist\nтаблица"
+mech3 -up-> A33 : "Rules engine,\nлогика"
+mech4 -up-> A34 : "Физическое\nуправление"
+
+note right of A31
+  **Проверяемые параметры**:
+  - **Роль**: employee, visitor, contractor
+  - **Зона доступа**: entrance, parking, building_A
+  - **Временной интервал**: 
+    * Рабочие часы: 08:00-18:00
+    * Круглосуточный доступ (для охраны)
+  - **День недели**: пн-пт, выходные
+  - **Статус учетной записи**: active/suspended
+  
+  **Кэширование**: 
+  - Redis: права доступа (TTL 10 мин)
+  - При изменении прав → инвалидация кэша
+  
+  **Время выполнения**: ~5-10ms
+end note
+
+note right of A32
+  **Черный список**:
+  - Пользователи с ограничениями
+  - Временная блокировка
+  - Постоянная блокировка
+  - Причина блокировки
+  
+  **Источники**:
+  - Ручное добавление администратором
+  - Автоматическая блокировка (N нарушений)
+  - Интеграция с HR системой (увольнение)
+  
+  **Алерты**:
+  - При обнаружении в черном списке
+  - Немедленное уведомление охране
+  
+  **Время выполнения**: ~5ms (indexed lookup)
+end note
+
+note right of A33
+  **Логика принятия решения**:
+  ```
+  IF (user in blacklist):
+      RETURN DENY + alert_security
+  
+  IF (confidence < 0.6):
+      RETURN MANUAL_VERIFICATION_REQUIRED
+  
+  IF (user has NO access to zone):
+      RETURN DENY + log_attempt
+  
+  IF (current_time NOT in allowed_hours):
+      RETURN DENY + notify_manager
+  
+  IF (account_status != ACTIVE):
+      RETURN DENY
+  
+  ELSE:
+      RETURN ALLOW + log_success
+  ```
+  
+  **Дополнительные проверки**:
+  - Лимит попыток прохода (anti-tailgating)
+  - Cooldown между проходами (30 сек)
+  
+  **Confidence пороги**:
+  - ≥0.95: автоматический ALLOW
+  - 0.6-0.95: ALLOW с логированием
+  - <0.6: требуется подтверждение оператора
+end note
+
+note right of A34
+  **Управление контроллерами**:
+  
+  **Протокол Wiegand** (26/34-bit):
+  - Передача команды открытия
+  - Длительность импульса: 50μs
+  - Интервал между битами: 1ms
+  
+  **Протокол RS-485/Modbus RTU**:
+  - Команда: OPEN_BARRIER (function code 0x06)
+  - Параметр: duration (секунды)
+  - Таймаут ответа: 500ms
+  
+  **Мониторинг состояния**:
+  - Опрос контроллеров (каждые 5 сек)
+  - Статусы: OPEN, CLOSED, OPENING, CLOSING, ERROR
+  - Обработка аварийных ситуаций
+  
+  **Failsafe режим**:
+  - При потере связи: барьер закрывается
+  - При пожарной тревоге: автоматическое открытие
+  
+  **Время выполнения**: ~100-200ms (физическое действие)
+end note
+
+@enduml

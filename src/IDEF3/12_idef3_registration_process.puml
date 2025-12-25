@@ -1,0 +1,195 @@
+@startuml IDEF3_Registration
+!define RECTANGLE class
+
+title IDEF3 - Процесс регистрации пользователя (A1)
+
+skinparam activity {
+  BackgroundColor LightBlue
+  BorderColor Black
+  ArrowColor Black
+}
+
+|HR менеджер|
+start
+:Инициация\nрегистрации;
+note right
+  **Действие 1.1**
+  UOB: Запрос на регистрацию
+  Триггер: Новый сотрудник
+end note
+
+:Ввод персональных\nданных;
+note right
+  **Действие 1.2**
+  Input: ФИО, должность,
+  подразделение, контакты
+  Constraint: Обязательные поля
+end note
+
+|Система|
+:Валидация\nданных;
+note right
+  **Действие 1.3**
+  Проверка уникальности email
+  Проверка формата данных
+end note
+
+if (Данные корректны?) then (да)
+  :Создание\nUser ID;
+  note right
+    **Действие 1.4**
+    Генерация UUID
+    Присвоение роли
+  end note
+else (нет)
+  |HR менеджер|
+  :Исправление\nошибок;
+  detach
+endif
+
+|HR менеджер|
+:Захват фотографий\nлица (5+ шт);
+note right
+  **Действие 1.5**
+  Requirement: 
+  - Разные ракурсы (фас, ¾, профиль)
+  - Разрешение ≥640×640
+  - Без окклюзий
+  Mechanism: Веб-камера / Загрузка файлов
+end note
+
+|Система|
+:Проверка качества\nфотографий;
+note right
+  **Действие 1.6**
+  - Детекция лица (есть/нет)
+  - Размер лица ≥30% кадра
+  - Яркость и контраст
+  - Размытие (blur detection)
+end note
+
+if (Качество OK?) then (да)
+  :Нормализация\nизображений;
+  note right
+    **Действие 1.7**
+    - Alignment по landmarks
+    - Resize 112×112
+    - Нормализация яркости
+  end note
+else (нет)
+  |HR менеджер|
+  :Повторный захват\nфото;
+  detach
+endif
+
+:Генерация\nface embeddings;
+note right
+  **Действие 1.8**
+  Model: ArcFace (ResNet-100)
+  Output: 512-dim vectors × 5
+  Mechanism: GPU inference
+  Time: ~500ms total
+end note
+
+:Усреднение\nembeddings;
+note right
+  **Действие 1.9**
+  Aggregation: mean(vectors)
+  Result: 1 × 512-dim vector
+  L2 normalization
+end note
+
+if (Регистрация\nтранспорта?) then (да)
+  |HR менеджер|
+  :Ввод данных\nавтомобиля;
+  note right
+    **Действие 1.10 (опционально)**
+    Input: Номер, марка, модель, цвет
+    Multiple: 1 пользователь → N авто
+  end note
+  
+  |Система|
+  :Валидация\nномера;
+  note right
+    **Действие 1.11**
+    Pattern: RU license plate format
+    Unique check
+  end note
+else (нет)
+endif
+
+:Назначение\nправ доступа;
+note right
+  **Действие 1.12**
+  Assignment:
+  - Роль (employee/visitor/contractor)
+  - Зоны доступа
+  - Временные ограничения
+  - Срок действия
+end note
+
+:Шифрование\nперсональных данных;
+note right
+  **Действие 1.13**
+  Algorithm: AES-256
+  Scope: ФИО, контакты
+  Compliance: ФЗ-152
+end note
+
+fork
+  :Сохранение в\nPostgreSQL;
+  note right
+    **Действие 1.14a**
+    Tables:
+    - users (metadata)
+    - biometrics (embeddings)
+    - vehicles
+    - access_rights
+    Transaction: ACID
+  end note
+fork again
+  :Сохранение фото\nв MinIO;
+  note right
+    **Действие 1.14b**
+    Path: /biometrics/{user_id}/
+    Format: JPEG (compressed)
+    Retention: permanent
+  end note
+fork again
+  :Индексация\nembedding в Faiss;
+  note right
+    **Действие 1.14c**
+    Index type: IndexFlatIP
+    Метрика: Cosine similarity
+    Для быстрого поиска
+  end note
+end fork
+
+:Публикация события\nв Kafka;
+note right
+  **Действие 1.15**
+  Topic: user.registered
+  Payload: {user_id, timestamp, created_by}
+  Consumer: Audit Service
+end note
+
+:Отправка уведомления\nна email;
+note right
+  **Действие 1.16**
+  Recipient: Новый пользователь
+  Content: Учетные данные, инструкция
+  Channel: Email / SMS
+end note
+
+|HR менеджер|
+:Получение\nподтверждения;
+note right
+  **Действие 1.17 (конец процесса)**
+  UOB: Пользователь зарегистрирован
+  Status: SUCCESS
+  Output: User profile created
+end note
+
+stop
+
+@enduml

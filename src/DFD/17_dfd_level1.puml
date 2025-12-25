@@ -1,0 +1,98 @@
+@startuml DFD_Level1
+!define RECTANGLE class
+
+title DFD Уровень 1 - Декомпозиция системы умного КПП (4 процесса)
+
+skinparam roundcorner 20
+skinparam defaultTextAlignment center
+
+' Внешние сущности
+actor "HR менеджер" as hr #LightBlue
+actor "Администратор" as admin #LightBlue
+actor "Оператор охраны" as guard #LightBlue
+database "IP-камеры" as cameras #LightGreen
+database "Контроллеры" as controllers #LightGreen
+database "Внешние\nсистемы" as external #LightGreen
+
+' Процессы (основные функции)
+circle "**1.0**\n\nРегистрация\nпользователей" as p1 #Orange
+circle "**2.0**\n\nРаспознавание\nлиц и авто" as p2 #Orange
+circle "**3.0**\n\nКонтроль\nдоступа" as p3 #Orange
+circle "**4.0**\n\nАудит и\nлогирование" as p4 #Orange
+
+' Хранилища данных
+database "D1: Пользователи\n(PostgreSQL)" as db_users #Yellow
+database "D2: Биометрия\n(embeddings)" as db_bio #Yellow
+database "D3: Правила\nдоступа" as db_rules #Yellow
+database "D4: События\n(Elasticsearch)" as db_events #Yellow
+database "D5: Изображения\n(MinIO)" as db_images #Yellow
+database "D6: Кэш\n(Redis)" as db_cache #Yellow
+
+' Kafka (брокер сообщений)
+queue "Kafka\n(message broker)" as kafka #Pink
+
+' Входные потоки от внешних сущностей
+hr --> p1 : "Данные нового\nпользователя"
+admin --> p1 : "Управление\nправами"
+cameras --> p2 : "RTSP\nвидеопотоки"
+admin --> p3 : "Политики\nбезопасности"
+guard --> p3 : "Ручное\nразрешение"
+
+' Процесс 1: Регистрация пользователей
+p1 --> db_users : "Сохранение\nпрофиля"
+p1 --> db_bio : "Сохранение\nface embeddings"
+p1 --> db_rules : "Назначение\nправ доступа"
+p1 --> db_images : "Сохранение\nфото"
+p1 --> kafka : "Событие:\nuser.registered"
+
+' Процесс 2: Распознавание лиц и авто
+p2 --> db_bio : "Поиск\nпохожих лиц"
+db_bio --> p2 : "Список\nкандидатов"
+p2 --> db_cache : "Кэш\nрезультатов"
+db_cache --> p2 : "Данные\nиз кэша"
+p2 --> db_images : "Сохранение\nframes"
+p2 --> kafka : "Событие:\nrecognition.face"
+
+' Процесс 3: Контроль доступа
+kafka --> p3 : "События\nраспознавания"
+db_users --> p3 : "Данные\nпользователя"
+db_rules --> p3 : "Правила\nдоступа"
+db_cache --> p3 : "Кэш\nправил"
+p3 --> controllers : "Команды\nOPEN/CLOSE"
+p3 --> kafka : "Решение:\naccess.decision"
+p3 --> guard : "Алерты\n(DENY, blacklist)"
+
+' Процесс 4: Аудит и логирование
+kafka --> p4 : "Все события\nсистемы"
+p4 --> db_events : "Индексация\nсобытий"
+p4 --> db_images : "Архивация\nмедиа"
+db_events --> p4 : "Поиск\nсобытий"
+db_users --> p4 : "Данные для\nотчетов"
+p4 --> admin : "Отчеты\nи аналитика"
+p4 --> external : "Экспорт\nданных"
+
+note bottom of kafka
+  **Apache Kafka**:
+  Асинхронная коммуникация
+  между микросервисами
+  
+  Topics:
+  - user.registered
+  - recognition.face
+  - recognition.vehicle
+  - access.decision
+  - notifications
+  - audit.system
+end note
+
+note bottom of db_users
+  **Хранилища данных**:
+  D1: users, roles, vehicles
+  D2: face_embeddings (vector DB)
+  D3: access_rules, blacklist
+  D4: events, logs (time-series)
+  D5: images, videos (object storage)
+  D6: cache (in-memory)
+end note
+
+@enduml

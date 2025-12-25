@@ -1,0 +1,193 @@
+@startuml UML_Recognition_UseCase
+
+title UML Use Case - Распознавание лиц и автомобилей
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Пользователь\n(проходящий)" as User
+actor "IP-камера" as Camera
+actor "Оператор охраны" as Guard
+actor "Системный\nадминистратор" as Admin
+
+package "Модуль распознавания" {
+  usecase "Распознавание лица\nв реальном времени" as UC1
+  usecase "Захват кадров\nиз RTSP потока" as UC1_1
+  usecase "Детекция лиц\nв кадре" as UC1_2
+  usecase "Извлечение\nпризнаков лица" as UC1_3
+  usecase "Поиск в базе\nembeddings" as UC1_4
+  usecase "Публикация события\nраспознавания" as UC1_5
+  
+  usecase "Распознавание\nномеров авто" as UC2
+  usecase "Детекция\nномерных знаков" as UC2_1
+  usecase "OCR текста\nномера" as UC2_2
+  usecase "Поиск в базе\nтранспорта" as UC2_3
+  
+  usecase "Сохранение\nизображений" as UC3
+  usecase "Архивация\nв MinIO" as UC3_1
+  usecase "Генерация\nметаданных" as UC3_2
+  
+  usecase "Мониторинг\nкамер" as UC4
+  usecase "Проверка\nстатуса камер" as UC4_1
+  usecase "Переподключение\nпри сбое" as UC4_2
+  
+  usecase "Настройка\nпараметров распознавания" as UC5
+  usecase "Установка порогов\nconfidence" as UC5_1
+  usecase "Выбор ML моделей" as UC5_2
+  usecase "Настройка камер\n(ROI, FPS)" as UC5_3
+}
+
+' Связи актёров
+Camera ..> UC1 : "передает\nвидеопоток"
+User ..> UC1 : "попадает\nв кадр"
+Camera ..> UC2 : "передает\nвидеопоток"
+
+Guard --> UC3 : "просматривает\nсохраненные кадры"
+Guard --> UC4 : "мониторит\nсостояние"
+
+Admin --> UC5
+Admin --> UC4
+
+' Include отношения для UC1
+UC1 ..> UC1_1 : <<include>>
+UC1 ..> UC1_2 : <<include>>
+UC1 ..> UC1_3 : <<include>>
+UC1 ..> UC1_4 : <<include>>
+UC1 ..> UC1_5 : <<include>>
+
+' Extend отношения для UC1
+UC1 <.. UC3 : <<extend>>
+
+' Include отношения для UC2
+UC2 ..> UC2_1 : <<include>>
+UC2 ..> UC2_2 : <<include>>
+UC2 ..> UC2_3 : <<include>>
+UC2 ..> UC1_5 : <<include>>
+
+' Extend отношения для UC2
+UC2 <.. UC3 : <<extend>>
+
+' Include отношения для UC3
+UC3 ..> UC3_1 : <<include>>
+UC3 ..> UC3_2 : <<include>>
+
+' Include отношения для UC4
+UC4 ..> UC4_1 : <<include>>
+UC4 <.. UC4_2 : <<extend>>
+
+' Include отношения для UC5
+UC5 ..> UC5_1 : <<include>>
+UC5 ..> UC5_2 : <<include>>
+UC5 ..> UC5_3 : <<include>>
+
+note right of UC1
+  **Основной сценарий**:
+  1. Камера передает RTSP поток
+  2. Система захватывает кадры (8-10 FPS)
+  3. Детекция лиц в кадре (RetinaFace)
+  4. Извлечение embeddings (ArcFace)
+  5. Поиск похожих в Faiss
+  6. Публикация события в Kafka
+  
+  **Предусловия**:
+  - Камера подключена и работает
+  - ML модели загружены в память
+  - Faiss индекс инициализирован
+  
+  **Постусловия**:
+  - Событие распознавания опубликовано
+  - Изображение сохранено (опционально)
+  
+  **Частота**: 100-500 событий/минута
+  **Latency**: <200ms (p95)
+end note
+
+note right of UC1_4
+  **Поиск в векторной БД**:
+  - Vector DB: Faiss IndexFlatIP
+  - Метрика: Cosine similarity
+  - Query: top-1 похожий
+  - Threshold: ≥0.6
+  
+  **Результаты**:
+  - Found: user_id + confidence
+  - Not found: "unknown" + alert
+  
+  **Кэширование**:
+  - Redis: hash(embedding) → user_id
+  - TTL: 5 минут
+  - Benefit: skip vector search
+end note
+
+note right of UC2
+  **Сценарий распознавания авто**:
+  1. Детекция транспорта (YOLOv8)
+  2. Детекция номерного знака
+  3. OCR текста (EasyOCR/CRNN)
+  4. Поиск в базе vehicles
+  5. Публикация события
+  
+  **Особенности**:
+  - Работа день/ночь (ИК подсветка)
+  - Скорость до 60 км/ч
+  - Точность ≥98%
+  
+  **Формат номеров**: RU ГОСТ Р 50577-2018
+end note
+
+note left of UC3
+  **Сохранение изображений**:
+  
+  **Что сохраняется**:
+  - Полный кадр (1920×1080)
+  - Crop лица (для аудита)
+  - Crop номера (если авто)
+  
+  **Хранилище**: MinIO (S3)
+  **Путь**: /events/{date}/{event_id}/
+  **Формат**: JPEG (quality 95)
+  **Retention**: 90 дней
+  
+  **Метаданные**:
+  - Timestamp, camera_id
+  - BBox coordinates
+  - Confidence score
+  - User_id (если найден)
+end note
+
+note left of UC4
+  **Мониторинг камер**:
+  
+  **Проверки**:
+  - RTSP соединение активно
+  - FPS стабильный (≥8 FPS)
+  - Качество видео (нет артефактов)
+  - Задержка потока (<500ms)
+  
+  **При сбое**:
+  - Автоматическое переподключение (3 попытки)
+  - Алерт оператору
+  - Логирование инцидента
+  
+  **Интервал проверки**: каждые 30 сек
+end note
+
+note left of UC5
+  **Настройки распознавания**:
+  
+  **Параметры**:
+  - Confidence threshold (0.6 - 0.95)
+  - Sampling rate (каждый N-й кадр)
+  - ROI (Region of Interest) для камеры
+  - Min face size (px)
+  - ML model selection (ArcFace/FaceNet)
+  
+  **GPU settings**:
+  - Batch size
+  - Max resolution
+  - VRAM allocation
+  
+  **Доступ**: только администраторы
+end note
+
+@enduml
