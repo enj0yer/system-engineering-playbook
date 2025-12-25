@@ -7,6 +7,7 @@
 - [Компонентная схема](./comp-scheme.md)
 - [IDEF0](./idef0.md)
 - [IDEF3](./idef3.md)
+- [BPMN](./bpmn.md)
 - [DFD](./dfd.md)
 - [UML](./uml.md)
     - [Регистрация](./UML/uml-registration.md)
