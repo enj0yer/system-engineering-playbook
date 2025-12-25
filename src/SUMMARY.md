@@ -12,5 +12,7 @@
     - [Распознавание](./UML/uml-recognition.md)
 - [BPMN](./bpmn.md)
 - [ADR](./adr.md)
-    - 
+    - [Выбор базы данных](./ADR/30_adr_database_choice.md)
+    - [Выбор брокера сообщений](./ADR/31_adr_kafka_broker.md)
+    - [Выбор модели ML](./ADR/32_adr_ml_models.md)
 - [Swagger](./swagger.md)
