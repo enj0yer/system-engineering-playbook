@@ -1,2 +1,4 @@
 - [Регистрация](./UML/uml-registration.md)
 - [Распознавание](./UML/uml-recognition.md)
+- [Проход пользователя](./UML/uml-user-pass.md)
+- [Определение пользователя из черного списка](./UML/uml-detect-blacklisted.md)
