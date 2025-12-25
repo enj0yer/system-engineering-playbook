@@ -31,113 +31,113 @@
 
 ## Face Recognition
 
-### Вариант 1: ArcFace (ResNet-100) ✅ ВЫБРАН
+### Вариант 1: ArcFace (ResNet-100) ВЫБРАН
 
 **Архитектура**: ResNet-100 backbone + ArcFace loss  
 **Размер модели**: ~250 MB  
 **Embedding size**: 512-dim
 
 **За**:
-- ✅ **State-of-the-art accuracy**: LFW 99.83%, CFP-FP 98.27%
-- ✅ **Discriminative embeddings**: angular margin loss (лучше разделяет классы)
-- ✅ **Inference speed**: ~100ms на GPU (batch size 8)
-- ✅ **Pretrained models**: доступны на 100M+ лиц
-- ✅ **Open-source**: InsightFace framework (Apache 2.0)
-- ✅ **Проверен в production**: используется в индустрии
+- **State-of-the-art accuracy**: LFW 99.83%, CFP-FP 98.27%
+- **Discriminative embeddings**: angular margin loss (лучше разделяет классы)
+- **Inference speed**: ~100ms на GPU (batch size 8)
+- **Pretrained models**: доступны на 100M+ лиц
+- **Open-source**: InsightFace framework (Apache 2.0)
+- **Проверен в production**: используется в индустрии
 
 **Против**:
-- ⚠️ Требуется GPU (на CPU ~2-3 сек)
-- ⚠️ Большой размер модели (250 MB)
+- Требуется GPU (на CPU ~2-3 сек)
+- Большой размер модели (250 MB)
 
 ### Вариант 2: FaceNet (Inception-ResNet)
 
 **За**:
-- ✅ Популярный, много документации
-- ✅ Хорошая точность (LFW 99.63%)
-- ✅ Triplet loss (хорошо для metric learning)
+- Популярный, много документации
+- Хорошая точность (LFW 99.63%)
+- Triplet loss (хорошо для metric learning)
 
 **Против**:
-- ❌ Уступает ArcFace по точности на 0.2%
-- ❌ Медленнее (Inception-ResNet тяжелее ResNet)
-- ❌ Сложнее обучать (triplet mining)
+- Уступает ArcFace по точности на 0.2%
+- Медленнее (Inception-ResNet тяжелее ResNet)
+- Сложнее обучать (triplet mining)
 
 ### Вариант 3: DeepFace (VGG-Face)
 
 **За**:
-- ✅ Первопроходец в deep face recognition
-- ✅ Простая архитектура
+- Первопроходец в deep face recognition
+- Простая архитектура
 
 **Против**:
-- ❌ Устаревшая архитектура (2014 год)
-- ❌ Уступает современным моделям по accuracy
-- ❌ Очень тяжелая модель (500+ MB)
+- Устаревшая архитектура (2014 год)
+- Уступает современным моделям по accuracy
+- Очень тяжелая модель (500+ MB)
 
 ## Face Detection
 
-### Вариант 1: RetinaFace ✅ ВЫБРАН
+### Вариант 1: RetinaFace ВЫБРАН
 
 **За**:
-- ✅ **State-of-the-art detection**: AP 96.9% на WIDER Face
-- ✅ **5 landmarks**: глаза, нос, уголки рта (для alignment)
-- ✅ **Multi-scale**: детектирует лица разных размеров
-- ✅ **Inference speed**: ~50ms на GPU
-- ✅ **Robust**: работает при окклюзиях и сложном освещении
+- **State-of-the-art detection**: AP 96.9% на WIDER Face
+- **5 landmarks**: глаза, нос, уголки рта (для alignment)
+- **Multi-scale**: детектирует лица разных размеров
+- **Inference speed**: ~50ms на GPU
+- **Robust**: работает при окклюзиях и сложном освещении
 
 **Против**:
-- ⚠️ Тяжелее MTCNN (~100 MB vs ~10 MB)
+- Тяжелее MTCNN (~100 MB vs ~10 MB)
 
 ### Вариант 2: MTCNN
 
 **За**:
-- ✅ Легковесная модель (~10 MB)
-- ✅ Cascade архитектура (быстрая rejection)
-- ✅ 5 landmarks
+- Легковесная модель (~10 MB)
+- Cascade архитектура (быстрая rejection)
+- 5 landmarks
 
 **Против**:
-- ❌ Уступает RetinaFace по accuracy на 5%
-- ❌ Хуже работает на малых лицах
+- Уступает RetinaFace по accuracy на 5%
+- Хуже работает на малых лицах
 
 ## OCR для номеров
 
-### Вариант 1: CRNN + CTC Loss ✅ ВЫБРАН
+### Вариант 1: CRNN + CTC Loss ВЫБРАН
 
 **Архитектура**: CNN (feature extraction) + RNN (sequence modeling) + CTC decoder  
 **Модель**: ResNet-34 backbone + Bidirectional LSTM
 
 **За**:
-- ✅ **Accuracy**: 98.5% на Russian plates dataset
-- ✅ **End-to-end**: детекция символов + распознавание
-- ✅ **Sequence modeling**: учитывает контекст букв
-- ✅ **Inference**: ~50ms на GPU
-- ✅ **Fine-tuning**: легко дообучить на custom dataset
+- **Accuracy**: 98.5% на Russian plates dataset
+- **End-to-end**: детекция символов + распознавание
+- **Sequence modeling**: учитывает контекст букв
+- **Inference**: ~50ms на GPU
+- **Fine-tuning**: легко дообучить на custom dataset
 
 **Против**:
-- ⚠️ Требуется большой dataset для обучения (100K+ примеров)
+- Требуется большой dataset для обучения (100K+ примеров)
 
 ### Вариант 2: EasyOCR (альтернатива)
 
 **За**:
-- ✅ Out-of-the-box для 80+ языков (включая русский)
-- ✅ Хорошая accuracy (95%+)
-- ✅ Простота использования (одна строка кода)
+- Out-of-the-box для 80+ языков (включая русский)
+- Хорошая accuracy (95%+)
+- Простота использования (одна строка кода)
 
 **Против**:
-- ❌ Медленнее CRNN (~100-150ms)
-- ❌ Менее настраиваемый (black-box модель)
+- Медленнее CRNN (~100-150ms)
+- Менее настраиваемый (black-box модель)
 
 ## Vehicle Detection
 
-### Вариант 1: YOLOv8 ✅ ВЫБРАН
+### Вариант 1: YOLOv8 ВЫБРАН
 
 **За**:
-- ✅ **Speed**: ~30 FPS на GPU (1080p)
-- ✅ **Accuracy**: mAP 90%+ на COCO vehicles
-- ✅ **Fine-tuning**: легко дообучить на custom dataset
-- ✅ **Multi-object**: детектирует vehicle + license_plate одновременно
-- ✅ **Active development**: Ultralytics регулярно обновляет
+- **Speed**: ~30 FPS на GPU (1080p)
+- **Accuracy**: mAP 90%+ на COCO vehicles
+- **Fine-tuning**: легко дообучить на custom dataset
+- **Multi-object**: детектирует vehicle + license_plate одновременно
+- **Active development**: Ultralytics регулярно обновляет
 
 **Против**:
-- ⚠️ Требуется GPU для real-time
+- Требуется GPU для real-time
 
 ---
 
@@ -220,22 +220,22 @@ Total: ~120ms per vehicle
 ## Последствия
 
 ### Позитивные:
-- ✅ Высокая точность распознавания (соответствует требованиям)
-- ✅ Low latency (подходит для real-time)
-- ✅ Open-source модели (нет лицензионных сборов)
-- ✅ Активно развиваются (можем обновляться)
-- ✅ Large community (много ресурсов для troubleshooting)
+- Высокая точность распознавания (соответствует требованиям)
+- Low latency (подходит для real-time)
+- Open-source модели (нет лицензионных сборов)
+- Активно развиваются (можем обновляться)
+- Large community (много ресурсов для troubleshooting)
 
 ### Негативные:
-- ⚠️ **GPU dependency**: без GPU система не работает
+- **GPU dependency**: без GPU система не работает
   - Стоимость: NVIDIA RTX 3090 ~$1500
   - Энергопотребление: 350W per GPU
   - Охлаждение: требуется активное охлаждение
 
-- ⚠️ **Model size**: 250MB+ (требуют RAM/VRAM)
+- **Model size**: 250MB+ (требуют RAM/VRAM)
   - VRAM: 8GB минимум (12GB рекомендуется)
   
-- ⚠️ **Fine-tuning required**: для максимальной accuracy нужно дообучить на custom dataset
+- **Fine-tuning required**: для максимальной accuracy нужно дообучить на custom dataset
   - Dataset collection: 10K+ примеров
   - Training time: 3-5 дней на GPU
   - ML expertise required
