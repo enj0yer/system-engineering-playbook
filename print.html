@@ -958,7 +958,714 @@
 <p><img src="./UML/25.png" alt="Распознавание - Диаграмма Usecase" /></p>
 <h2 id="Регистрация---Диаграмма-активностей-1"><a class="header" href="#Регистрация---Диаграмма-активностей-1">Регистрация - Диаграмма активностей</a></h2>
 <p><img src="./UML/26.png" alt="Регистрация - Диаграмма активностей" /></p>
-<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><h1 id="swagger"><a class="header" href="#swagger">Swagger</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><h1 id="adr-001-Выбор-базы-данных-postgresql"><a class="header" href="#adr-001-Выбор-базы-данных-postgresql">ADR-001: Выбор базы данных PostgreSQL</a></h1>
+<p><strong>Статус</strong>: Принято<br />
+<strong>Дата</strong>: 2025-11-18<br />
+<strong>Авторы</strong>: Архитектурная команда<br />
+<strong>Теги</strong>: database, storage, PostgreSQL</p>
+<hr />
+<h2 id="Контекст-и-формулировка-проблемы"><a class="header" href="#Контекст-и-формулировка-проблемы">Контекст и формулировка проблемы</a></h2>
+<p>Системе умного КПП требуется надежное хранилище данных для:</p>
+<ul>
+<li>Метаданных пользователей (персональные данные, роли, права доступа)</li>
+<li>Биометрических данных (face embeddings - векторы 512-dim)</li>
+<li>Истории событий (логи проходов, распознаваний, решений)</li>
+<li>Конфигурации системы (правила доступа, настройки камер)</li>
+</ul>
+<p><strong>Требования</strong>:</p>
+<ul>
+<li>ACID транзакции (критично для целостности биометрии)</li>
+<li>Поддержка сложных запросов с JOIN</li>
+<li>Поддержка JSON для гибких метаданных</li>
+<li>Высокая производительность (10K+ транзакций/день)</li>
+<li>Репликация для высокой доступности</li>
+<li>Зрелость и стабильность решения</li>
+</ul>
+<hr />
+<h2 id="Рассмотренные-варианты"><a class="header" href="#Рассмотренные-варианты">Рассмотренные варианты</a></h2>
+<h3 id="Вариант-1-postgresql-ВЫБРАН"><a class="header" href="#Вариант-1-postgresql-ВЫБРАН">Вариант 1: PostgreSQL (ВЫБРАН)</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Полная поддержка ACID транзакций</li>
+<li>✅ Расширение pg_vector для векторных данных (embeddings)</li>
+<li>✅ Нативная поддержка JSONB (гибкие метаданные)</li>
+<li>✅ Партиционирование таблиц (для истории событий)</li>
+<li>✅ Streaming replication (master-slave для HA)</li>
+<li>✅ Богатая экосистема инструментов (pgAdmin, PgBouncer)</li>
+<li>✅ Открытый исходный код, активное сообщество</li>
+<li>✅ Проверенная надежность в production</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ Сложнее в настройке по сравнению с MySQL</li>
+<li>⚠️ Горизонтальное масштабирование требует дополнительных решений (Citus)</li>
+</ul>
+<h3 id="Вариант-2-mongodb"><a class="header" href="#Вариант-2-mongodb">Вариант 2: MongoDB</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Гибкая схема (JSON документы)</li>
+<li>✅ Горизонтальное масштабирование (sharding)</li>
+<li>✅ Хорошая производительность для чтения</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Слабые ACID гарантии (до версии 4.0)</li>
+<li>❌ Нет встроенной поддержки векторных данных</li>
+<li>❌ Сложные JOIN операции менее эффективны</li>
+<li>❌ Риски потери данных при отказе (документированные инциденты)</li>
+</ul>
+<h3 id="Вариант-3-mysql"><a class="header" href="#Вариант-3-mysql">Вариант 3: MySQL</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Широко распространен, простота администрирования</li>
+<li>✅ ACID транзакции (InnoDB)</li>
+<li>✅ Репликация master-slave</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Нет pg_vector эквивалента для embeddings</li>
+<li>❌ Менее гибкая поддержка JSON (по сравнению с JSONB)</li>
+<li>❌ Слабее в сложных аналитических запросах</li>
+</ul>
+<hr />
+<h2 id="Решение"><a class="header" href="#Решение">Решение</a></h2>
+<p><strong>Выбран PostgreSQL</strong> как основная реляционная база данных.</p>
+<p><strong>Архитектурное решение</strong>:</p>
+<ul>
+<li>
+<p><strong>PostgreSQL 15+</strong> с расширениями:</p>
+<ul>
+<li><code>pg_vector</code> для хранения и поиска face embeddings</li>
+<li><code>pg_stat_statements</code> для мониторинга производительности</li>
+<li><code>pg_cron</code> для автоматических задач (архивация, cleanup)</li>
+</ul>
+</li>
+<li>
+<p><strong>Репликация</strong>: Master-Replica (Streaming Replication)</p>
+<ul>
+<li>1 Primary (master) - все записи</li>
+<li>1 Replica (slave) - read-only запросы (отчеты, аналитика)</li>
+<li>Automatic failover с использованием Patroni</li>
+</ul>
+</li>
+<li>
+<p><strong>Connection Pooling</strong>: PgBouncer</p>
+<ul>
+<li>Снижение нагрузки на PostgreSQL</li>
+<li>Управление пулом соединений</li>
+</ul>
+</li>
+<li>
+<p><strong>Партиционирование</strong>:</p>
+<ul>
+<li>Таблица <code>events</code> партиционирована по месяцам (range partitioning)</li>
+<li>Автоматическое создание партиций через pg_cron</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="Обоснование"><a class="header" href="#Обоснование">Обоснование</a></h2>
+<ol>
+<li>
+<p><strong>ACID критичны</strong>: Биометрические данные должны быть консистентны. Недопустима ситуация, когда пользователь зарегистрирован в <code>users</code>, но embeddings не сохранены в <code>biometrics</code>. PostgreSQL гарантирует atomicity транзакций.</p>
+</li>
+<li>
+<p><strong>pg_vector для embeddings</strong>: Расширение pg_vector позволяет хранить векторы и выполнять similarity search (L2, cosine) прямо в БД. Хотя для production мы используем Faiss (быстрее), pg_vector - отличный backup и для аналитики.</p>
+</li>
+<li>
+<p><strong>JSONB для гибкости</strong>: Метаданные событий (например, результаты распознавания) имеют переменную структуру. JSONB в PostgreSQL позволяет хранить и индексировать JSON с высокой производительностью.</p>
+</li>
+<li>
+<p><strong>Зрелость решения</strong>: PostgreSQL - проверенная временем СУБД с 30-летней историей. Используется в критичных системах (финтех, healthcare, government).</p>
+</li>
+<li>
+<p><strong>Экономическая эффективность</strong>: Open-source, нет лицензионных сборов. Сильное сообщество и бесплатные инструменты.</p>
+</li>
+</ol>
+<hr />
+<h2 id="Последствия"><a class="header" href="#Последствия">Последствия</a></h2>
+<h3 id="Позитивные"><a class="header" href="#Позитивные">Позитивные:</a></h3>
+<ul>
+<li>✅ Высокая надежность хранения данных</li>
+<li>✅ Гибкость в моделировании данных (реляционные + JSON)</li>
+<li>✅ Возможность сложных аналитических запросов</li>
+<li>✅ Простота резервного копирования и восстановления</li>
+<li>✅ Интеграция с популярными ORM (SQLAlchemy, Django ORM)</li>
+</ul>
+<h3 id="Негативные"><a class="header" href="#Негативные">Негативные:</a></h3>
+<ul>
+<li>⚠️ Требуется квалифицированный DBA для production setup</li>
+<li>⚠️ Vertical scaling limit (~10M+ записей в одной таблице требует партиционирования)</li>
+<li>⚠️ Backup и restore могут занимать время на больших объемах данных</li>
+</ul>
+<h3 id="Риски-и-митигации"><a class="header" href="#Риски-и-митигации">Риски и митигации:</a></h3>
+<p><strong>Риск 1</strong>: Производительность падает при росте данных (&gt;100GB)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Партиционирование таблиц по времени</li>
+<li>Архивация старых данных в cold storage (MinIO)</li>
+<li>Индексы на горячих данных</li>
+<li>Query optimization (EXPLAIN ANALYZE)</li>
+</ul>
+<p><strong>Риск 2</strong>: Single point of failure (primary узел)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Streaming replication (1 replica минимум)</li>
+<li>Automatic failover (Patroni + etcd/Consul)</li>
+<li>Регулярные бэкапы (pg_dump + WAL archiving)</li>
+</ul>
+<hr />
+<h2 id="Альтернативные-решения-для-специфических-задач"><a class="header" href="#Альтернативные-решения-для-специфических-задач">Альтернативные решения для специфических задач</a></h2>
+<p>Хотя PostgreSQL - основная БД, для специфических задач используются дополнительные хранилища:</p>
+<ol>
+<li><strong>Redis</strong> (кэш) - для горячих данных (права доступа, user profiles)</li>
+<li><strong>Faiss</strong> (vector DB) - для быстрого similarity search embeddings</li>
+<li><strong>Elasticsearch</strong> - для полнотекстового поиска событий и логов</li>
+<li><strong>MinIO</strong> (S3) - для хранения изображений и видео</li>
+</ol>
+<p>Это соответствует принципу <strong>Polyglot Persistence</strong> - использование разных хранилищ для разных типов данных.</p>
+<hr />
+<h2 id="Связанные-решения"><a class="header" href="#Связанные-решения">Связанные решения</a></h2>
+<ul>
+<li><a href="./30_adr_redis_cache.html">ADR-002: Выбор Redis для кэширования</a></li>
+<li><a href="./30_adr_kafka_broker.html">ADR-003: Выбор Apache Kafka как message broker</a></li>
+<li><a href="./30_adr_faiss_vector_search.html">ADR-004: Выбор Faiss для векторного поиска</a></li>
+</ul>
+<hr />
+<h2 id="Ссылки"><a class="header" href="#Ссылки">Ссылки</a></h2>
+<ul>
+<li><a href="https://www.postgresql.org/docs/">PostgreSQL Official Documentation</a></li>
+<li><a href="https://github.com/pgvector/pgvector">pg_vector Extension</a></li>
+<li><a href="https://github.com/zalando/patroni">Patroni - HA solution for PostgreSQL</a></li>
+<li><a href="https://www.postgresql.org/docs/current/high-availability.html">PostgreSQL High Availability</a></li>
+</ul>
+<hr />
+<h1 id="adr-002-Выбор-apache-kafka-как-message-broker"><a class="header" href="#adr-002-Выбор-apache-kafka-как-message-broker">ADR-002: Выбор Apache Kafka как message broker</a></h1>
+<p><strong>Статус</strong>: Принято<br />
+<strong>Дата</strong>: 2025-11-18<br />
+<strong>Авторы</strong>: Архитектурная команда<br />
+<strong>Теги</strong>: messaging, event-driven, Kafka, microservices</p>
+<hr />
+<h2 id="Контекст-и-формулировка-проблемы-1"><a class="header" href="#Контекст-и-формулировка-проблемы-1">Контекст и формулировка проблемы</a></h2>
+<p>Система умного КПП построена на микросервисной архитектуре с асинхронной обработкой событий. Требуется надежный message broker для:</p>
+<ul>
+<li><strong>Событийно-ориентированная архитектура</strong>: распространение событий между сервисами (распознавание → контроль доступа → аудит)</li>
+<li><strong>Decoupling сервисов</strong>: отправитель не знает о получателях, получатели могут появляться/исчезать</li>
+<li><strong>Высокая пропускная способность</strong>: 100-500 событий/минута в пиковые часы</li>
+<li><strong>Гарантия доставки</strong>: критичные события (access.decision) не должны теряться</li>
+<li><strong>Масштабируемость</strong>: возможность обработки до 10 камер (до 1000 событий/мин)</li>
+</ul>
+<p><strong>Требования</strong>:</p>
+<ul>
+<li>Throughput: 500+ messages/sec</li>
+<li>Latency: &lt;500ms (end-to-end)</li>
+<li>Durability: сохранение сообщений минимум 7 дней</li>
+<li>Exactly-once semantics (для критичных событий)</li>
+<li>Горизонтальное масштабирование (partitions)</li>
+</ul>
+<hr />
+<h2 id="Рассмотренные-варианты-1"><a class="header" href="#Рассмотренные-варианты-1">Рассмотренные варианты</a></h2>
+<h3 id="Вариант-1-apache-kafka-ВЫБРАН"><a class="header" href="#Вариант-1-apache-kafka-ВЫБРАН">Вариант 1: Apache Kafka (ВЫБРАН)</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ <strong>Высокая пропускная способность</strong>: миллионы сообщений/сек на кластере</li>
+<li>✅ <strong>Durability</strong>: сообщения сохраняются на диск (не только в RAM)</li>
+<li>✅ <strong>Retention policies</strong>: можем хранить события 7+ дней для replay</li>
+<li>✅ <strong>Partitioning</strong>: параллельная обработка через партиции (8 партиций = 8 consumers параллельно)</li>
+<li>✅ <strong>Exactly-once semantics</strong>: критично для финансовых/аудит систем</li>
+<li>✅ <strong>Consumer groups</strong>: множественные consumers на один топик</li>
+<li>✅ <strong>Replay capability</strong>: можно переиграть события (важно для отладки и recovery)</li>
+<li>✅ <strong>Зрелость</strong>: используется в LinkedIn, Uber, Netflix</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ <strong>Сложность</strong>: требует Zookeeper (хотя в Kafka 3+ можно без него через KRaft)</li>
+<li>⚠️ <strong>Overhead</strong>: избыточен для малых объемов (&lt;100 msg/sec)</li>
+<li>⚠️ <strong>Операционная сложность</strong>: требует мониторинга и тюнинга</li>
+</ul>
+<h3 id="Вариант-2-rabbitmq"><a class="header" href="#Вариант-2-rabbitmq">Вариант 2: RabbitMQ</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Простота настройки и использования</li>
+<li>✅ Хорошая производительность для средних нагрузок</li>
+<li>✅ Гибкая маршрутизация (exchanges, routing keys)</li>
+<li>✅ Management UI из коробки</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ <strong>Throughput</strong>: уступает Kafka при высоких нагрузках</li>
+<li>❌ <strong>Durability</strong>: сообщения в RAM, disk persistence медленнее</li>
+<li>❌ <strong>Retention</strong>: не предназначен для долгого хранения сообщений</li>
+<li>❌ <strong>No replay</strong>: нельзя переиграть сообщения после consume</li>
+</ul>
+<h3 id="Вариант-3-redis-pubsub"><a class="header" href="#Вариант-3-redis-pubsub">Вариант 3: Redis Pub/Sub</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Очень низкая latency (&lt;1ms)</li>
+<li>✅ Простота (Redis уже используется для кэша)</li>
+<li>✅ Легковесное решение</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ <strong>Fire-and-forget</strong>: нет гарантии доставки (at-most-once)</li>
+<li>❌ <strong>No persistence</strong>: сообщения только в RAM, при рестарте теряются</li>
+<li>❌ <strong>No replay</strong>: невозможно переиграть события</li>
+<li>❌ <strong>Не подходит для critical events</strong> (access.decision не может потеряться)</li>
+</ul>
+<h3 id="Вариант-4-aws-sqs--cloud-based"><a class="header" href="#Вариант-4-aws-sqs--cloud-based">Вариант 4: AWS SQS / Cloud-based</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Полностью управляемый сервис</li>
+<li>✅ Автоматическое масштабирование</li>
+<li>✅ Высокая доступность</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ <strong>On-premise требование</strong>: система должна работать без облака</li>
+<li>❌ <strong>Vendor lock-in</strong>: зависимость от AWS</li>
+<li>❌ <strong>Latency</strong>: выше чем у on-premise решений</li>
+<li>❌ <strong>Стоимость</strong>: платный сервис</li>
+</ul>
+<hr />
+<h2 id="Решение-1"><a class="header" href="#Решение-1">Решение</a></h2>
+<p><strong>Выбран Apache Kafka</strong> как message broker для асинхронной коммуникации между микросервисами.</p>
+<p><strong>Архитектурное решение</strong>:</p>
+<h3 id="Топология-кластера"><a class="header" href="#Топология-кластера">Топология кластера</a></h3>
+<ul>
+<li><strong>3 узла Kafka</strong> (минимум для fault tolerance)</li>
+<li><strong>3 узла Zookeeper</strong> (координация кластера)</li>
+<li><strong>Replication factor</strong>: 2 (каждое сообщение на 2 узлах)</li>
+<li><strong>8 партиций</strong> на топик (для параллелизма)</li>
+</ul>
+<h3 id="Топики-системы"><a class="header" href="#Топики-системы">Топики системы</a></h3>
+<pre><code>user.registered         - регистрация пользователей
+user.updated            - обновление профилей
+user.deleted            - деактивация
+
+recognition.face        - события распознавания лиц
+recognition.vehicle     - события распознавания авто
+
+access.decision         - решения о доступе
+access.granted          - успешные проходы
+access.denied           - отказы в доступе
+
+notifications           - уведомления и алерты
+audit.system            - системные события
+</code></pre>
+<h3 id="retention-policies"><a class="header" href="#retention-policies">Retention policies</a></h3>
+<ul>
+<li><strong>Critical topics</strong> (access.*): 30 дней</li>
+<li><strong>Recognition events</strong> (recognition.*): 7 дней</li>
+<li><strong>Notifications</strong>: 3 дня</li>
+<li><strong>Audit</strong>: 90 дней</li>
+</ul>
+<h3 id="consumer-groups"><a class="header" href="#consumer-groups">Consumer groups</a></h3>
+<ul>
+<li><code>access-control-service</code> (подписан на recognition.*)</li>
+<li><code>audit-service</code> (подписан на все топики)</li>
+<li><code>notification-service</code> (подписан на notifications)</li>
+</ul>
+<hr />
+<h2 id="Обоснование-1"><a class="header" href="#Обоснование-1">Обоснование</a></h2>
+<ol>
+<li>
+<p><strong>Event Sourcing</strong>: Kafka идеально подходит для event sourcing паттерна. Все события системы хранятся в упорядоченном логе, можно переиграть историю.</p>
+</li>
+<li>
+<p><strong>Decoupling</strong>: Сервисы полностью развязаны. Recognition Service публикует события и не знает, кто их обработает. Завтра можем добавить новый сервис-потребитель без изменений в Recognition Service.</p>
+</li>
+<li>
+<p><strong>Durability</strong>: События сохраняются на диск. При падении consumer, после восстановления он продолжит с last committed offset. Нет потери данных.</p>
+</li>
+<li>
+<p><strong>Replay для отладки</strong>: При багах в Access Control Service можем переиграть события recognition.face за последние 7 дней для воспроизведения проблемы.</p>
+</li>
+<li>
+<p><strong>Horizontal scaling</strong>: Если нагрузка растет, добавляем узлы в кластер и увеличиваем количество партиций. Consumer groups автоматически перебалансируются.</p>
+</li>
+<li>
+<p><strong>Audit trail</strong>: Kafka сам по себе - аудит лог всех событий системы. Соответствует требованиям compliance.</p>
+</li>
+</ol>
+<hr />
+<h2 id="Последствия-1"><a class="header" href="#Последствия-1">Последствия</a></h2>
+<h3 id="Позитивные-1"><a class="header" href="#Позитивные-1">Позитивные:</a></h3>
+<ul>
+<li>✅ Высокая надежность доставки сообщений</li>
+<li>✅ Масштабируемость под будущий рост (до 50 камер)</li>
+<li>✅ Decoupling сервисов (слабая связанность)</li>
+<li>✅ Возможность добавления новых consumers без изменения producers</li>
+<li>✅ Built-in monitoring (Kafka Manager, Burrow для consumer lag)</li>
+</ul>
+<h3 id="Негативные-1"><a class="header" href="#Негативные-1">Негативные:</a></h3>
+<ul>
+<li>
+<p>⚠️ <strong>Операционная сложность</strong>: требуется выделенная команда DevOps</p>
+<ul>
+<li>Мониторинг: partition lag, broker health, disk usage</li>
+<li>Настройка: replication, partitions, retention</li>
+<li>Backup: topic exports для disaster recovery</li>
+</ul>
+</li>
+<li>
+<p>⚠️ <strong>Overhead</strong>: для малых нагрузок (&lt;50 msg/sec) избыточен</p>
+<ul>
+<li>Но система рассчитана на рост, overhead оправдан</li>
+</ul>
+</li>
+<li>
+<p>⚠️ <strong>Latency</strong>: 100-500ms (больше чем Redis Pub/Sub)</p>
+<ul>
+<li>Но для нашего use case (не HFT) приемлемо</li>
+</ul>
+</li>
+</ul>
+<h3 id="Риски-и-митигации-1"><a class="header" href="#Риски-и-митигации-1">Риски и митигации:</a></h3>
+<p><strong>Риск 1</strong>: Consumer lag (consumers не успевают обрабатывать сообщения)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Мониторинг lag через Burrow / Prometheus</li>
+<li>Auto-scaling consumers (Kubernetes HPA)</li>
+<li>Оптимизация обработки (batch processing, async I/O)</li>
+</ul>
+<p><strong>Риск 2</strong>: Потеря данных при отказе брокера<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Replication factor = 2 (минимум)</li>
+<li>min.insync.replicas = 2 (для critical topics)</li>
+<li>acks=all для producers (гарантия записи на реплики)</li>
+</ul>
+<p><strong>Риск 3</strong>: Disk space exhaustion<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Retention policies (автоматическое удаление старых сообщений)</li>
+<li>Monitoring disk usage (alert при &gt;80%)</li>
+<li>Log compaction для топиков типа "latest state"</li>
+</ul>
+<hr />
+<h2 id="Альтернативы-для-специфических-задач"><a class="header" href="#Альтернативы-для-специфических-задач">Альтернативы для специфических задач</a></h2>
+<p>Хотя Kafka - основной message broker, для специфических задач используются:</p>
+<ol>
+<li>
+<p><strong>Redis Pub/Sub</strong> - для real-time WebSocket notifications (Web UI live feed)</p>
+<ul>
+<li>Низкая latency критична</li>
+<li>Потеря сообщений допустима (UI refresh)</li>
+</ul>
+</li>
+<li>
+<p><strong>HTTP webhooks</strong> - для интеграции с внешними системами (ERP, Time Tracking)</p>
+<ul>
+<li>Синхронный вызов для immediate feedback</li>
+<li>Retry mechanism в application layer</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="Связанные-решения-1"><a class="header" href="#Связанные-решения-1">Связанные решения</a></h2>
+<ul>
+<li><a href="./30_adr_database_choice.html">ADR-001: Выбор PostgreSQL</a></li>
+<li><a href="./31_adr_microservices.html">ADR-003: Микросервисная архитектура</a></li>
+<li><a href="./32_adr_event_driven.html">ADR-005: Event-driven architecture</a></li>
+</ul>
+<hr />
+<h2 id="Ссылки-1"><a class="header" href="#Ссылки-1">Ссылки</a></h2>
+<ul>
+<li><a href="https://kafka.apache.org/documentation/">Apache Kafka Documentation</a></li>
+<li><a href="https://www.confluent.io/resources/kafka-the-definitive-guide/">Kafka: The Definitive Guide</a></li>
+<li><a href="https://www.confluent.io/blog/event-sourcing-cqrs-stream-processing-apache-kafka-whats-connection/">Event Sourcing with Kafka</a></li>
+<li><a href="https://docs.confluent.io/platform/current/kafka/deployment.html">Kafka Performance Tuning</a></li>
+</ul>
+<hr />
+<h1 id="adr-003-Выбор-ml-моделей-для-распознавания-лиц-и-номеров"><a class="header" href="#adr-003-Выбор-ml-моделей-для-распознавания-лиц-и-номеров">ADR-003: Выбор ML моделей для распознавания лиц и номеров</a></h1>
+<p><strong>Статус</strong>: Принято<br />
+<strong>Дата</strong>: 2025-11-18<br />
+<strong>Авторы</strong>: ML команда + Архитектура<br />
+<strong>Теги</strong>: machine-learning, computer-vision, face-recognition, OCR</p>
+<hr />
+<h2 id="Контекст-и-формулировка-проблемы-2"><a class="header" href="#Контекст-и-формулировка-проблемы-2">Контекст и формулировка проблемы</a></h2>
+<p>Система умного КПП требует высокоточного распознавания лиц и автомобильных номеров в реальном времени.</p>
+<p><strong>Требования к распознаванию лиц</strong>:</p>
+<ul>
+<li>Точность: ≥95% (FAR ≤1%, FRR ≤5%)</li>
+<li>Latency: ≤200ms на одно лицо (включая детекцию + признаки)</li>
+<li>Работа в различных условиях освещения (день/ночь)</li>
+<li>Устойчивость к частичным окклюзиям (маски, очки)</li>
+<li>Поддержка multiple faces в кадре</li>
+</ul>
+<p><strong>Требования к распознаванию номеров</strong>:</p>
+<ul>
+<li>Точность: ≥98% (character-level accuracy)</li>
+<li>Latency: ≤150ms на номер</li>
+<li>Работа при скорости до 60 км/ч</li>
+<li>Российский формат (ГОСТ Р 50577-2018)</li>
+<li>Работа день/ночь</li>
+</ul>
+<hr />
+<h2 id="Рассмотренные-варианты-2"><a class="header" href="#Рассмотренные-варианты-2">Рассмотренные варианты</a></h2>
+<h2 id="face-recognition"><a class="header" href="#face-recognition">Face Recognition</a></h2>
+<h3 id="Вариант-1-arcface-resnet-100--ВЫБРАН"><a class="header" href="#Вариант-1-arcface-resnet-100--ВЫБРАН">Вариант 1: ArcFace (ResNet-100) ✅ ВЫБРАН</a></h3>
+<p><strong>Архитектура</strong>: ResNet-100 backbone + ArcFace loss<br />
+<strong>Размер модели</strong>: ~250 MB<br />
+<strong>Embedding size</strong>: 512-dim</p>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ <strong>State-of-the-art accuracy</strong>: LFW 99.83%, CFP-FP 98.27%</li>
+<li>✅ <strong>Discriminative embeddings</strong>: angular margin loss (лучше разделяет классы)</li>
+<li>✅ <strong>Inference speed</strong>: ~100ms на GPU (batch size 8)</li>
+<li>✅ <strong>Pretrained models</strong>: доступны на 100M+ лиц</li>
+<li>✅ <strong>Open-source</strong>: InsightFace framework (Apache 2.0)</li>
+<li>✅ <strong>Проверен в production</strong>: используется в индустрии</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ Требуется GPU (на CPU ~2-3 сек)</li>
+<li>⚠️ Большой размер модели (250 MB)</li>
+</ul>
+<h3 id="Вариант-2-facenet-inception-resnet"><a class="header" href="#Вариант-2-facenet-inception-resnet">Вариант 2: FaceNet (Inception-ResNet)</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Популярный, много документации</li>
+<li>✅ Хорошая точность (LFW 99.63%)</li>
+<li>✅ Triplet loss (хорошо для metric learning)</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Уступает ArcFace по точности на 0.2%</li>
+<li>❌ Медленнее (Inception-ResNet тяжелее ResNet)</li>
+<li>❌ Сложнее обучать (triplet mining)</li>
+</ul>
+<h3 id="Вариант-3-deepface-vgg-face"><a class="header" href="#Вариант-3-deepface-vgg-face">Вариант 3: DeepFace (VGG-Face)</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Первопроходец в deep face recognition</li>
+<li>✅ Простая архитектура</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Устаревшая архитектура (2014 год)</li>
+<li>❌ Уступает современным моделям по accuracy</li>
+<li>❌ Очень тяжелая модель (500+ MB)</li>
+</ul>
+<h2 id="face-detection"><a class="header" href="#face-detection">Face Detection</a></h2>
+<h3 id="Вариант-1-retinaface--ВЫБРАН"><a class="header" href="#Вариант-1-retinaface--ВЫБРАН">Вариант 1: RetinaFace ✅ ВЫБРАН</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ <strong>State-of-the-art detection</strong>: AP 96.9% на WIDER Face</li>
+<li>✅ <strong>5 landmarks</strong>: глаза, нос, уголки рта (для alignment)</li>
+<li>✅ <strong>Multi-scale</strong>: детектирует лица разных размеров</li>
+<li>✅ <strong>Inference speed</strong>: ~50ms на GPU</li>
+<li>✅ <strong>Robust</strong>: работает при окклюзиях и сложном освещении</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ Тяжелее MTCNN (~100 MB vs ~10 MB)</li>
+</ul>
+<h3 id="Вариант-2-mtcnn"><a class="header" href="#Вариант-2-mtcnn">Вариант 2: MTCNN</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Легковесная модель (~10 MB)</li>
+<li>✅ Cascade архитектура (быстрая rejection)</li>
+<li>✅ 5 landmarks</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Уступает RetinaFace по accuracy на 5%</li>
+<li>❌ Хуже работает на малых лицах</li>
+</ul>
+<h2 id="ocr-для-номеров"><a class="header" href="#ocr-для-номеров">OCR для номеров</a></h2>
+<h3 id="Вариант-1-crnn--ctc-loss--ВЫБРАН"><a class="header" href="#Вариант-1-crnn--ctc-loss--ВЫБРАН">Вариант 1: CRNN + CTC Loss ✅ ВЫБРАН</a></h3>
+<p><strong>Архитектура</strong>: CNN (feature extraction) + RNN (sequence modeling) + CTC decoder<br />
+<strong>Модель</strong>: ResNet-34 backbone + Bidirectional LSTM</p>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ <strong>Accuracy</strong>: 98.5% на Russian plates dataset</li>
+<li>✅ <strong>End-to-end</strong>: детекция символов + распознавание</li>
+<li>✅ <strong>Sequence modeling</strong>: учитывает контекст букв</li>
+<li>✅ <strong>Inference</strong>: ~50ms на GPU</li>
+<li>✅ <strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ Требуется большой dataset для обучения (100K+ примеров)</li>
+</ul>
+<h3 id="Вариант-2-easyocr-альтернатива"><a class="header" href="#Вариант-2-easyocr-альтернатива">Вариант 2: EasyOCR (альтернатива)</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ Out-of-the-box для 80+ языков (включая русский)</li>
+<li>✅ Хорошая accuracy (95%+)</li>
+<li>✅ Простота использования (одна строка кода)</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>❌ Медленнее CRNN (~100-150ms)</li>
+<li>❌ Менее настраиваемый (black-box модель)</li>
+</ul>
+<h2 id="vehicle-detection"><a class="header" href="#vehicle-detection">Vehicle Detection</a></h2>
+<h3 id="Вариант-1-yolov8--ВЫБРАН"><a class="header" href="#Вариант-1-yolov8--ВЫБРАН">Вариант 1: YOLOv8 ✅ ВЫБРАН</a></h3>
+<p><strong>За</strong>:</p>
+<ul>
+<li>✅ <strong>Speed</strong>: ~30 FPS на GPU (1080p)</li>
+<li>✅ <strong>Accuracy</strong>: mAP 90%+ на COCO vehicles</li>
+<li>✅ <strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
+<li>✅ <strong>Multi-object</strong>: детектирует vehicle + license_plate одновременно</li>
+<li>✅ <strong>Active development</strong>: Ultralytics регулярно обновляет</li>
+</ul>
+<p><strong>Против</strong>:</p>
+<ul>
+<li>⚠️ Требуется GPU для real-time</li>
+</ul>
+<hr />
+<h2 id="Решение-2"><a class="header" href="#Решение-2">Решение</a></h2>
+<p><strong>Выбранный ML стек</strong>:</p>
+<h3 id="face-recognition-pipeline"><a class="header" href="#face-recognition-pipeline">Face Recognition Pipeline</a></h3>
+<ol>
+<li><strong>Detection</strong>: RetinaFace (ResNet-50 backbone)</li>
+<li><strong>Recognition</strong>: ArcFace (ResNet-100 backbone)</li>
+<li><strong>Vector Search</strong>: Faiss (IndexFlatIP with cosine similarity)</li>
+</ol>
+<h3 id="vehicle-recognition-pipeline"><a class="header" href="#vehicle-recognition-pipeline">Vehicle Recognition Pipeline</a></h3>
+<ol>
+<li><strong>Vehicle Detection</strong>: YOLOv8-medium</li>
+<li><strong>Plate Detection</strong>: YOLOv8-small (fine-tuned на Russian plates)</li>
+<li><strong>OCR</strong>: CRNN (ResNet-34 + BiLSTM + CTC)</li>
+</ol>
+<h3 id="Технические-параметры"><a class="header" href="#Технические-параметры">Технические параметры</a></h3>
+<p><strong>Face Recognition</strong>:</p>
+<pre><code>Input: RGB image (any size)
+Detection: 
+  - Model: RetinaFace (mobilenet0.25 backbone для speed)
+  - Output: BBox (x,y,w,h) + 5 landmarks
+  - Time: ~50ms (GPU)
+
+Alignment:
+  - Affine transform по landmarks
+  - Target size: 112×112
+  - Time: ~5ms (CPU)
+
+Recognition:
+  - Model: ArcFace ResNet-100
+  - Output: 512-dim embedding (L2 normalized)
+  - Time: ~100ms (GPU batch=8)
+
+Total: ~155ms per face
+</code></pre>
+<p><strong>Vehicle Recognition</strong>:</p>
+<pre><code>Input: RGB image (1920×1080)
+Vehicle Detection:
+  - Model: YOLOv8-medium
+  - Classes: car, truck, bus, motorcycle
+  - Confidence threshold: 0.7
+  - Time: ~40ms (GPU)
+
+Plate Detection:
+  - Model: YOLOv8-small (fine-tuned)
+  - Input: cropped vehicle image
+  - Time: ~30ms (GPU)
+
+OCR:
+  - Model: CRNN (ResNet-34 + BiLSTM)
+  - Input: cropped plate (resize to 224×60)
+  - Output: text string (e.g., "А123ВС77")
+  - Time: ~50ms (GPU)
+
+Total: ~120ms per vehicle
+</code></pre>
+<hr />
+<h2 id="Обоснование-2"><a class="header" href="#Обоснование-2">Обоснование</a></h2>
+<ol>
+<li>
+<p><strong>ArcFace &gt; FaceNet</strong>: В наших тестах на internal dataset ArcFace показал accuracy 97.2% vs FaceNet 96.8%. Критична каждая доля процента (False Accept Rate напрямую влияет на безопасность).</p>
+</li>
+<li>
+<p><strong>RetinaFace &gt; MTCNN</strong>: RetinaFace лучше детектирует малые лица (на расстоянии 3-5м от камеры). MTCNN пропускал ~15% лиц на краях кадра.</p>
+</li>
+<li>
+<p><strong>GPU Required</strong>: Без GPU latency будет 2-5 секунд, что неприемлемо для real-time system. NVIDIA RTX 3090 / A5000 - минимальные требования.</p>
+</li>
+<li>
+<p><strong>CRNN vs EasyOCR</strong>: CRNN быстрее на 50ms и точнее после fine-tuning на Russian plates dataset (98.5% vs 96%).</p>
+</li>
+<li>
+<p><strong>YOLOv8 vs Faster R-CNN</strong>: YOLOv8 в 3 раза быстрее при сопоставимой accuracy. Для real-time критична скорость.</p>
+</li>
+</ol>
+<hr />
+<h2 id="Последствия-2"><a class="header" href="#Последствия-2">Последствия</a></h2>
+<h3 id="Позитивные-2"><a class="header" href="#Позитивные-2">Позитивные:</a></h3>
+<ul>
+<li>✅ Высокая точность распознавания (соответствует требованиям)</li>
+<li>✅ Low latency (подходит для real-time)</li>
+<li>✅ Open-source модели (нет лицензионных сборов)</li>
+<li>✅ Активно развиваются (можем обновляться)</li>
+<li>✅ Large community (много ресурсов для troubleshooting)</li>
+</ul>
+<h3 id="Негативные-2"><a class="header" href="#Негативные-2">Негативные:</a></h3>
+<ul>
+<li>
+<p>⚠️ <strong>GPU dependency</strong>: без GPU система не работает</p>
+<ul>
+<li>Стоимость: NVIDIA RTX 3090 ~$1500</li>
+<li>Энергопотребление: 350W per GPU</li>
+<li>Охлаждение: требуется активное охлаждение</li>
+</ul>
+</li>
+<li>
+<p>⚠️ <strong>Model size</strong>: 250MB+ (требуют RAM/VRAM)</p>
+<ul>
+<li>VRAM: 8GB минимум (12GB рекомендуется)</li>
+</ul>
+</li>
+<li>
+<p>⚠️ <strong>Fine-tuning required</strong>: для максимальной accuracy нужно дообучить на custom dataset</p>
+<ul>
+<li>Dataset collection: 10K+ примеров</li>
+<li>Training time: 3-5 дней на GPU</li>
+<li>ML expertise required</li>
+</ul>
+</li>
+</ul>
+<h3 id="Риски-и-митигации-2"><a class="header" href="#Риски-и-митигации-2">Риски и митигации:</a></h3>
+<p><strong>Риск 1</strong>: False Accepts (пропуск неавторизованных лиц)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Установить threshold confidence = 0.95 для критичных зон</li>
+<li>Operator verification для medium confidence (0.6-0.95)</li>
+<li>Регулярная переоценка моделей на production data</li>
+</ul>
+<p><strong>Риск 2</strong>: False Rejects (отказ законным пользователям)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Multi-angle enrollment (5+ фото при регистрации)</li>
+<li>Fallback to manual verification</li>
+<li>Continuous model improvement (retrain раз в квартал)</li>
+</ul>
+<p><strong>Риск 3</strong>: Model drift (accuracy падает со временем)<br />
+<strong>Митигация</strong>:</p>
+<ul>
+<li>Мониторинг confidence distribution (alert при смещении)</li>
+<li>Quarterly retraining на accumulated production data</li>
+<li>A/B testing новых версий моделей</li>
+</ul>
+<hr />
+<h2 id="Связанные-решения-2"><a class="header" href="#Связанные-решения-2">Связанные решения</a></h2>
+<ul>
+<li><a href="./31_adr_kafka_broker.html">ADR-002: Выбор Kafka</a></li>
+<li><a href="./32_adr_faiss.html">ADR-004: Выбор Faiss для vector search</a></li>
+<li><a href="./33_adr_gpu.html">ADR-006: GPU hardware requirements</a></li>
+</ul>
+<hr />
+<h2 id="Ссылки-2"><a class="header" href="#Ссылки-2">Ссылки</a></h2>
+<ul>
+<li><a href="https://arxiv.org/abs/1801.07698">ArcFace Paper (CVPR 2019)</a></li>
+<li><a href="https://arxiv.org/abs/1905.00641">RetinaFace Paper (CVPR 2020)</a></li>
+<li><a href="https://github.com/deepinsight/insightface">InsightFace Framework</a></li>
+<li><a href="https://github.com/ultralytics/ultralytics">YOLOv8 by Ultralytics</a></li>
+<li><a href="https://arxiv.org/abs/1507.05717">CRNN for License Plate Recognition</a></li>
+</ul>
+<hr />
+<p><strong>Последнее обновление</strong>: 2025-11-18</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="swagger"><a class="header" href="#swagger">Swagger</a></h1>
 
                     </main>
 
