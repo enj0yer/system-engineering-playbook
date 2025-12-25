@@ -1,5 +1,5 @@
 # Диаграмма активностей
-![Диаграмма активностей](./26.png)
+![Диаграмма активностей](./uml-recognition-process-activity-diagram.png)
 
 # Диаграмма классов
 ![Диаграмма классов](./uml-recognition-class-diagram.png)
@@ -20,4 +20,4 @@
 ![Диаграмма состояний](./uml-recognition-state-diagram.png)
 
 # Диаграмма Use case
-![Диаграмма Use case](./25.png)
+![Диаграмма Use case](./uml-registration-process-sequence-diagram.png)

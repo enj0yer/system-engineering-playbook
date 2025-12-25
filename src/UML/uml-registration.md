@@ -1,5 +1,5 @@
 # Диаграмма активностей
-![Диаграмма активностей](./23.png)
+![Диаграмма активностей](./uml-registration-process-activity-diagram.png)
 
 # Диаграмма классов
 ![Диаграмма классов](./uml-registration-class-diagram.png)
@@ -14,10 +14,10 @@
 ![Диаграмма объектов](./uml-registration-object-diagram.png)
 
 # Диаграмма последовательностей
-![Диаграмма последовательностей](./24.png)
+![Диаграмма последовательностей](./uml-registration-process-sequence-diagram.png)
 
 # Диаграмма состояний
 ![Диаграмма состояний](./uml-registration-state-diagram.png)
 
 # Диаграмма Use case
-![Диаграмма Use case](./22.png)
+![Диаграмма Use case](./uml-registration-process-use-case-diagram.png)
