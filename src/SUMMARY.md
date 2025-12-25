@@ -21,3 +21,4 @@
     - [Выбор брокера сообщений](./ADR/31_adr_kafka_broker.md)
     - [Выбор модели ML](./ADR/32_adr_ml_models.md)
 - [Swagger](./swagger.md)
+- [Статьи](./articles.md)
