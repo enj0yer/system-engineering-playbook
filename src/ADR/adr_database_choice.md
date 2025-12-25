@@ -152,7 +152,7 @@
 
 ## Связанные решения
 
-- [ADR-003: Выбор Apache Kafka как message broker](./30_adr_kafka_broker.md)
+- [ADR-003: Выбор Apache Kafka как message broker](./adr_kafka_broker.md)
 
 ---
 

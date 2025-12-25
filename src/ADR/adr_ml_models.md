@@ -264,7 +264,7 @@ Total: ~120ms per vehicle
 
 ## Связанные решения
 
-- [ADR-002: Выбор Kafka](./31_adr_kafka_broker.md)
+- [ADR-002: Выбор Kafka](./adr_kafka_broker.md)
 
 ---
 

@@ -204,7 +204,7 @@ audit.system            - системные события
 
 ## Связанные решения
 
-- [ADR-001: Выбор PostgreSQL](./30_adr_database_choice.md)
+- [ADR-001: Выбор PostgreSQL](./adr_database_choice.md)
 
 ---
 
