@@ -119,7 +119,7 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          multipart/formw-data:
             schema:
               type: object
               required:
