@@ -22,3 +22,4 @@
     - [Выбор модели ML](./ADR/32_adr_ml_models.md)
 - [Swagger](./swagger.md)
 - [Статьи](./articles.md)
+- [Статьи](./publications.md)
