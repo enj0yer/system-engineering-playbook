@@ -986,46 +986,46 @@
 <h3 id="Вариант-1-postgresql-ВЫБРАН"><a class="header" href="#Вариант-1-postgresql-ВЫБРАН">Вариант 1: PostgreSQL (ВЫБРАН)</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Полная поддержка ACID транзакций</li>
-<li>✅ Расширение pg_vector для векторных данных (embeddings)</li>
-<li>✅ Нативная поддержка JSONB (гибкие метаданные)</li>
-<li>✅ Партиционирование таблиц (для истории событий)</li>
-<li>✅ Streaming replication (master-slave для HA)</li>
-<li>✅ Богатая экосистема инструментов (pgAdmin, PgBouncer)</li>
-<li>✅ Открытый исходный код, активное сообщество</li>
-<li>✅ Проверенная надежность в production</li>
+<li>Полная поддержка ACID транзакций</li>
+<li>Расширение pg_vector для векторных данных (embeddings)</li>
+<li>Нативная поддержка JSONB (гибкие метаданные)</li>
+<li>Партиционирование таблиц (для истории событий)</li>
+<li>Streaming replication (master-slave для HA)</li>
+<li>Богатая экосистема инструментов (pgAdmin, PgBouncer)</li>
+<li>Открытый исходный код, активное сообщество</li>
+<li>Проверенная надежность в production</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ Сложнее в настройке по сравнению с MySQL</li>
-<li>⚠️ Горизонтальное масштабирование требует дополнительных решений (Citus)</li>
+<li>Сложнее в настройке по сравнению с MySQL</li>
+<li>Горизонтальное масштабирование требует дополнительных решений (Citus)</li>
 </ul>
 <h3 id="Вариант-2-mongodb"><a class="header" href="#Вариант-2-mongodb">Вариант 2: MongoDB</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Гибкая схема (JSON документы)</li>
-<li>✅ Горизонтальное масштабирование (sharding)</li>
-<li>✅ Хорошая производительность для чтения</li>
+<li>Гибкая схема (JSON документы)</li>
+<li>Горизонтальное масштабирование (sharding)</li>
+<li>Хорошая производительность для чтения</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Слабые ACID гарантии (до версии 4.0)</li>
-<li>❌ Нет встроенной поддержки векторных данных</li>
-<li>❌ Сложные JOIN операции менее эффективны</li>
-<li>❌ Риски потери данных при отказе (документированные инциденты)</li>
+<li>Слабые ACID гарантии (до версии 4.0)</li>
+<li>Нет встроенной поддержки векторных данных</li>
+<li>Сложные JOIN операции менее эффективны</li>
+<li>Риски потери данных при отказе (документированные инциденты)</li>
 </ul>
 <h3 id="Вариант-3-mysql"><a class="header" href="#Вариант-3-mysql">Вариант 3: MySQL</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Широко распространен, простота администрирования</li>
-<li>✅ ACID транзакции (InnoDB)</li>
-<li>✅ Репликация master-slave</li>
+<li>Широко распространен, простота администрирования</li>
+<li>ACID транзакции (InnoDB)</li>
+<li>Репликация master-slave</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Нет pg_vector эквивалента для embeddings</li>
-<li>❌ Менее гибкая поддержка JSON (по сравнению с JSONB)</li>
-<li>❌ Слабее в сложных аналитических запросах</li>
+<li>Нет pg_vector эквивалента для embeddings</li>
+<li>Менее гибкая поддержка JSON (по сравнению с JSONB)</li>
+<li>Слабее в сложных аналитических запросах</li>
 </ul>
 <hr />
 <h2 id="Решение"><a class="header" href="#Решение">Решение</a></h2>
@@ -1086,17 +1086,17 @@
 <h2 id="Последствия"><a class="header" href="#Последствия">Последствия</a></h2>
 <h3 id="Позитивные"><a class="header" href="#Позитивные">Позитивные:</a></h3>
 <ul>
-<li>✅ Высокая надежность хранения данных</li>
-<li>✅ Гибкость в моделировании данных (реляционные + JSON)</li>
-<li>✅ Возможность сложных аналитических запросов</li>
-<li>✅ Простота резервного копирования и восстановления</li>
-<li>✅ Интеграция с популярными ORM (SQLAlchemy, Django ORM)</li>
+<li>Высокая надежность хранения данных</li>
+<li>Гибкость в моделировании данных (реляционные + JSON)</li>
+<li>Возможность сложных аналитических запросов</li>
+<li>Простота резервного копирования и восстановления</li>
+<li>Интеграция с популярными ORM (SQLAlchemy, Django ORM)</li>
 </ul>
 <h3 id="Негативные"><a class="header" href="#Негативные">Негативные:</a></h3>
 <ul>
-<li>⚠️ Требуется квалифицированный DBA для production setup</li>
-<li>⚠️ Vertical scaling limit (~10M+ записей в одной таблице требует партиционирования)</li>
-<li>⚠️ Backup и restore могут занимать время на больших объемах данных</li>
+<li>Требуется квалифицированный DBA для production setup</li>
+<li>Vertical scaling limit (~10M+ записей в одной таблице требует партиционирования)</li>
+<li>Backup и restore могут занимать время на больших объемах данных</li>
 </ul>
 <h3 id="Риски-и-митигации"><a class="header" href="#Риски-и-митигации">Риски и митигации:</a></h3>
 <p><strong>Риск 1</strong>: Производительность падает при росте данных (&gt;100GB)<br />
@@ -1168,63 +1168,63 @@
 <h3 id="Вариант-1-apache-kafka-ВЫБРАН"><a class="header" href="#Вариант-1-apache-kafka-ВЫБРАН">Вариант 1: Apache Kafka (ВЫБРАН)</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ <strong>Высокая пропускная способность</strong>: миллионы сообщений/сек на кластере</li>
-<li>✅ <strong>Durability</strong>: сообщения сохраняются на диск (не только в RAM)</li>
-<li>✅ <strong>Retention policies</strong>: можем хранить события 7+ дней для replay</li>
-<li>✅ <strong>Partitioning</strong>: параллельная обработка через партиции (8 партиций = 8 consumers параллельно)</li>
-<li>✅ <strong>Exactly-once semantics</strong>: критично для финансовых/аудит систем</li>
-<li>✅ <strong>Consumer groups</strong>: множественные consumers на один топик</li>
-<li>✅ <strong>Replay capability</strong>: можно переиграть события (важно для отладки и recovery)</li>
-<li>✅ <strong>Зрелость</strong>: используется в LinkedIn, Uber, Netflix</li>
+<li><strong>Высокая пропускная способность</strong>: миллионы сообщений/сек на кластере</li>
+<li><strong>Durability</strong>: сообщения сохраняются на диск (не только в RAM)</li>
+<li><strong>Retention policies</strong>: можем хранить события 7+ дней для replay</li>
+<li><strong>Partitioning</strong>: параллельная обработка через партиции (8 партиций = 8 consumers параллельно)</li>
+<li><strong>Exactly-once semantics</strong>: критично для финансовых/аудит систем</li>
+<li><strong>Consumer groups</strong>: множественные consumers на один топик</li>
+<li><strong>Replay capability</strong>: можно переиграть события (важно для отладки и recovery)</li>
+<li><strong>Зрелость</strong>: используется в LinkedIn, Uber, Netflix</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ <strong>Сложность</strong>: требует Zookeeper (хотя в Kafka 3+ можно без него через KRaft)</li>
-<li>⚠️ <strong>Overhead</strong>: избыточен для малых объемов (&lt;100 msg/sec)</li>
-<li>⚠️ <strong>Операционная сложность</strong>: требует мониторинга и тюнинга</li>
+<li><strong>Сложность</strong>: требует Zookeeper (хотя в Kafka 3+ можно без него через KRaft)</li>
+<li><strong>Overhead</strong>: избыточен для малых объемов (&lt;100 msg/sec)</li>
+<li><strong>Операционная сложность</strong>: требует мониторинга и тюнинга</li>
 </ul>
 <h3 id="Вариант-2-rabbitmq"><a class="header" href="#Вариант-2-rabbitmq">Вариант 2: RabbitMQ</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Простота настройки и использования</li>
-<li>✅ Хорошая производительность для средних нагрузок</li>
-<li>✅ Гибкая маршрутизация (exchanges, routing keys)</li>
-<li>✅ Management UI из коробки</li>
+<li>Простота настройки и использования</li>
+<li>Хорошая производительность для средних нагрузок</li>
+<li>Гибкая маршрутизация (exchanges, routing keys)</li>
+<li>Management UI из коробки</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ <strong>Throughput</strong>: уступает Kafka при высоких нагрузках</li>
-<li>❌ <strong>Durability</strong>: сообщения в RAM, disk persistence медленнее</li>
-<li>❌ <strong>Retention</strong>: не предназначен для долгого хранения сообщений</li>
-<li>❌ <strong>No replay</strong>: нельзя переиграть сообщения после consume</li>
+<li><strong>Throughput</strong>: уступает Kafka при высоких нагрузках</li>
+<li><strong>Durability</strong>: сообщения в RAM, disk persistence медленнее</li>
+<li><strong>Retention</strong>: не предназначен для долгого хранения сообщений</li>
+<li><strong>No replay</strong>: нельзя переиграть сообщения после consume</li>
 </ul>
 <h3 id="Вариант-3-redis-pubsub"><a class="header" href="#Вариант-3-redis-pubsub">Вариант 3: Redis Pub/Sub</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Очень низкая latency (&lt;1ms)</li>
-<li>✅ Простота (Redis уже используется для кэша)</li>
-<li>✅ Легковесное решение</li>
+<li>Очень низкая latency (&lt;1ms)</li>
+<li>Простота (Redis уже используется для кэша)</li>
+<li>Легковесное решение</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ <strong>Fire-and-forget</strong>: нет гарантии доставки (at-most-once)</li>
-<li>❌ <strong>No persistence</strong>: сообщения только в RAM, при рестарте теряются</li>
-<li>❌ <strong>No replay</strong>: невозможно переиграть события</li>
-<li>❌ <strong>Не подходит для critical events</strong> (access.decision не может потеряться)</li>
+<li><strong>Fire-and-forget</strong>: нет гарантии доставки (at-most-once)</li>
+<li><strong>No persistence</strong>: сообщения только в RAM, при рестарте теряются</li>
+<li><strong>No replay</strong>: невозможно переиграть события</li>
+<li><strong>Не подходит для critical events</strong> (access.decision не может потеряться)</li>
 </ul>
 <h3 id="Вариант-4-aws-sqs--cloud-based"><a class="header" href="#Вариант-4-aws-sqs--cloud-based">Вариант 4: AWS SQS / Cloud-based</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Полностью управляемый сервис</li>
-<li>✅ Автоматическое масштабирование</li>
-<li>✅ Высокая доступность</li>
+<li>Полностью управляемый сервис</li>
+<li>Автоматическое масштабирование</li>
+<li>Высокая доступность</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ <strong>On-premise требование</strong>: система должна работать без облака</li>
-<li>❌ <strong>Vendor lock-in</strong>: зависимость от AWS</li>
-<li>❌ <strong>Latency</strong>: выше чем у on-premise решений</li>
-<li>❌ <strong>Стоимость</strong>: платный сервис</li>
+<li><strong>On-premise требование</strong>: система должна работать без облака</li>
+<li><strong>Vendor lock-in</strong>: зависимость от AWS</li>
+<li><strong>Latency</strong>: выше чем у on-premise решений</li>
+<li><strong>Стоимость</strong>: платный сервис</li>
 </ul>
 <hr />
 <h2 id="Решение-1"><a class="header" href="#Решение-1">Решение</a></h2>
@@ -1291,16 +1291,16 @@ audit.system            - системные события
 <h2 id="Последствия-1"><a class="header" href="#Последствия-1">Последствия</a></h2>
 <h3 id="Позитивные-1"><a class="header" href="#Позитивные-1">Позитивные:</a></h3>
 <ul>
-<li>✅ Высокая надежность доставки сообщений</li>
-<li>✅ Масштабируемость под будущий рост (до 50 камер)</li>
-<li>✅ Decoupling сервисов (слабая связанность)</li>
-<li>✅ Возможность добавления новых consumers без изменения producers</li>
-<li>✅ Built-in monitoring (Kafka Manager, Burrow для consumer lag)</li>
+<li>Высокая надежность доставки сообщений</li>
+<li>Масштабируемость под будущий рост (до 50 камер)</li>
+<li>Decoupling сервисов (слабая связанность)</li>
+<li>Возможность добавления новых consumers без изменения producers</li>
+<li>Built-in monitoring (Kafka Manager, Burrow для consumer lag)</li>
 </ul>
 <h3 id="Негативные-1"><a class="header" href="#Негативные-1">Негативные:</a></h3>
 <ul>
 <li>
-<p>⚠️ <strong>Операционная сложность</strong>: требуется выделенная команда DevOps</p>
+<p><strong>Операционная сложность</strong>: требуется выделенная команда DevOps</p>
 <ul>
 <li>Мониторинг: partition lag, broker health, disk usage</li>
 <li>Настройка: replication, partitions, retention</li>
@@ -1308,13 +1308,13 @@ audit.system            - системные события
 </ul>
 </li>
 <li>
-<p>⚠️ <strong>Overhead</strong>: для малых нагрузок (&lt;50 msg/sec) избыточен</p>
+<p><strong>Overhead</strong>: для малых нагрузок (&lt;50 msg/sec) избыточен</p>
 <ul>
 <li>Но система рассчитана на рост, overhead оправдан</li>
 </ul>
 </li>
 <li>
-<p>⚠️ <strong>Latency</strong>: 100-500ms (больше чем Redis Pub/Sub)</p>
+<p><strong>Latency</strong>: 100-500ms (больше чем Redis Pub/Sub)</p>
 <ul>
 <li>Но для нашего use case (не HFT) приемлемо</li>
 </ul>
@@ -1404,116 +1404,116 @@ audit.system            - системные события
 <hr />
 <h2 id="Рассмотренные-варианты-2"><a class="header" href="#Рассмотренные-варианты-2">Рассмотренные варианты</a></h2>
 <h2 id="face-recognition"><a class="header" href="#face-recognition">Face Recognition</a></h2>
-<h3 id="Вариант-1-arcface-resnet-100--ВЫБРАН"><a class="header" href="#Вариант-1-arcface-resnet-100--ВЫБРАН">Вариант 1: ArcFace (ResNet-100) ✅ ВЫБРАН</a></h3>
+<h3 id="Вариант-1-arcface-resnet-100-ВЫБРАН"><a class="header" href="#Вариант-1-arcface-resnet-100-ВЫБРАН">Вариант 1: ArcFace (ResNet-100) ВЫБРАН</a></h3>
 <p><strong>Архитектура</strong>: ResNet-100 backbone + ArcFace loss<br />
 <strong>Размер модели</strong>: ~250 MB<br />
 <strong>Embedding size</strong>: 512-dim</p>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ <strong>State-of-the-art accuracy</strong>: LFW 99.83%, CFP-FP 98.27%</li>
-<li>✅ <strong>Discriminative embeddings</strong>: angular margin loss (лучше разделяет классы)</li>
-<li>✅ <strong>Inference speed</strong>: ~100ms на GPU (batch size 8)</li>
-<li>✅ <strong>Pretrained models</strong>: доступны на 100M+ лиц</li>
-<li>✅ <strong>Open-source</strong>: InsightFace framework (Apache 2.0)</li>
-<li>✅ <strong>Проверен в production</strong>: используется в индустрии</li>
+<li><strong>State-of-the-art accuracy</strong>: LFW 99.83%, CFP-FP 98.27%</li>
+<li><strong>Discriminative embeddings</strong>: angular margin loss (лучше разделяет классы)</li>
+<li><strong>Inference speed</strong>: ~100ms на GPU (batch size 8)</li>
+<li><strong>Pretrained models</strong>: доступны на 100M+ лиц</li>
+<li><strong>Open-source</strong>: InsightFace framework (Apache 2.0)</li>
+<li><strong>Проверен в production</strong>: используется в индустрии</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ Требуется GPU (на CPU ~2-3 сек)</li>
-<li>⚠️ Большой размер модели (250 MB)</li>
+<li>Требуется GPU (на CPU ~2-3 сек)</li>
+<li>Большой размер модели (250 MB)</li>
 </ul>
 <h3 id="Вариант-2-facenet-inception-resnet"><a class="header" href="#Вариант-2-facenet-inception-resnet">Вариант 2: FaceNet (Inception-ResNet)</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Популярный, много документации</li>
-<li>✅ Хорошая точность (LFW 99.63%)</li>
-<li>✅ Triplet loss (хорошо для metric learning)</li>
+<li>Популярный, много документации</li>
+<li>Хорошая точность (LFW 99.63%)</li>
+<li>Triplet loss (хорошо для metric learning)</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Уступает ArcFace по точности на 0.2%</li>
-<li>❌ Медленнее (Inception-ResNet тяжелее ResNet)</li>
-<li>❌ Сложнее обучать (triplet mining)</li>
+<li>Уступает ArcFace по точности на 0.2%</li>
+<li>Медленнее (Inception-ResNet тяжелее ResNet)</li>
+<li>Сложнее обучать (triplet mining)</li>
 </ul>
 <h3 id="Вариант-3-deepface-vgg-face"><a class="header" href="#Вариант-3-deepface-vgg-face">Вариант 3: DeepFace (VGG-Face)</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Первопроходец в deep face recognition</li>
-<li>✅ Простая архитектура</li>
+<li>Первопроходец в deep face recognition</li>
+<li>Простая архитектура</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Устаревшая архитектура (2014 год)</li>
-<li>❌ Уступает современным моделям по accuracy</li>
-<li>❌ Очень тяжелая модель (500+ MB)</li>
+<li>Устаревшая архитектура (2014 год)</li>
+<li>Уступает современным моделям по accuracy</li>
+<li>Очень тяжелая модель (500+ MB)</li>
 </ul>
 <h2 id="face-detection"><a class="header" href="#face-detection">Face Detection</a></h2>
-<h3 id="Вариант-1-retinaface--ВЫБРАН"><a class="header" href="#Вариант-1-retinaface--ВЫБРАН">Вариант 1: RetinaFace ✅ ВЫБРАН</a></h3>
+<h3 id="Вариант-1-retinaface-ВЫБРАН"><a class="header" href="#Вариант-1-retinaface-ВЫБРАН">Вариант 1: RetinaFace ВЫБРАН</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ <strong>State-of-the-art detection</strong>: AP 96.9% на WIDER Face</li>
-<li>✅ <strong>5 landmarks</strong>: глаза, нос, уголки рта (для alignment)</li>
-<li>✅ <strong>Multi-scale</strong>: детектирует лица разных размеров</li>
-<li>✅ <strong>Inference speed</strong>: ~50ms на GPU</li>
-<li>✅ <strong>Robust</strong>: работает при окклюзиях и сложном освещении</li>
+<li><strong>State-of-the-art detection</strong>: AP 96.9% на WIDER Face</li>
+<li><strong>5 landmarks</strong>: глаза, нос, уголки рта (для alignment)</li>
+<li><strong>Multi-scale</strong>: детектирует лица разных размеров</li>
+<li><strong>Inference speed</strong>: ~50ms на GPU</li>
+<li><strong>Robust</strong>: работает при окклюзиях и сложном освещении</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ Тяжелее MTCNN (~100 MB vs ~10 MB)</li>
+<li>Тяжелее MTCNN (~100 MB vs ~10 MB)</li>
 </ul>
 <h3 id="Вариант-2-mtcnn"><a class="header" href="#Вариант-2-mtcnn">Вариант 2: MTCNN</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Легковесная модель (~10 MB)</li>
-<li>✅ Cascade архитектура (быстрая rejection)</li>
-<li>✅ 5 landmarks</li>
+<li>Легковесная модель (~10 MB)</li>
+<li>Cascade архитектура (быстрая rejection)</li>
+<li>5 landmarks</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Уступает RetinaFace по accuracy на 5%</li>
-<li>❌ Хуже работает на малых лицах</li>
+<li>Уступает RetinaFace по accuracy на 5%</li>
+<li>Хуже работает на малых лицах</li>
 </ul>
 <h2 id="ocr-для-номеров"><a class="header" href="#ocr-для-номеров">OCR для номеров</a></h2>
-<h3 id="Вариант-1-crnn--ctc-loss--ВЫБРАН"><a class="header" href="#Вариант-1-crnn--ctc-loss--ВЫБРАН">Вариант 1: CRNN + CTC Loss ✅ ВЫБРАН</a></h3>
+<h3 id="Вариант-1-crnn--ctc-loss-ВЫБРАН"><a class="header" href="#Вариант-1-crnn--ctc-loss-ВЫБРАН">Вариант 1: CRNN + CTC Loss ВЫБРАН</a></h3>
 <p><strong>Архитектура</strong>: CNN (feature extraction) + RNN (sequence modeling) + CTC decoder<br />
 <strong>Модель</strong>: ResNet-34 backbone + Bidirectional LSTM</p>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ <strong>Accuracy</strong>: 98.5% на Russian plates dataset</li>
-<li>✅ <strong>End-to-end</strong>: детекция символов + распознавание</li>
-<li>✅ <strong>Sequence modeling</strong>: учитывает контекст букв</li>
-<li>✅ <strong>Inference</strong>: ~50ms на GPU</li>
-<li>✅ <strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
+<li><strong>Accuracy</strong>: 98.5% на Russian plates dataset</li>
+<li><strong>End-to-end</strong>: детекция символов + распознавание</li>
+<li><strong>Sequence modeling</strong>: учитывает контекст букв</li>
+<li><strong>Inference</strong>: ~50ms на GPU</li>
+<li><strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ Требуется большой dataset для обучения (100K+ примеров)</li>
+<li>Требуется большой dataset для обучения (100K+ примеров)</li>
 </ul>
 <h3 id="Вариант-2-easyocr-альтернатива"><a class="header" href="#Вариант-2-easyocr-альтернатива">Вариант 2: EasyOCR (альтернатива)</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ Out-of-the-box для 80+ языков (включая русский)</li>
-<li>✅ Хорошая accuracy (95%+)</li>
-<li>✅ Простота использования (одна строка кода)</li>
+<li>Out-of-the-box для 80+ языков (включая русский)</li>
+<li>Хорошая accuracy (95%+)</li>
+<li>Простота использования (одна строка кода)</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>❌ Медленнее CRNN (~100-150ms)</li>
-<li>❌ Менее настраиваемый (black-box модель)</li>
+<li>Медленнее CRNN (~100-150ms)</li>
+<li>Менее настраиваемый (black-box модель)</li>
 </ul>
 <h2 id="vehicle-detection"><a class="header" href="#vehicle-detection">Vehicle Detection</a></h2>
-<h3 id="Вариант-1-yolov8--ВЫБРАН"><a class="header" href="#Вариант-1-yolov8--ВЫБРАН">Вариант 1: YOLOv8 ✅ ВЫБРАН</a></h3>
+<h3 id="Вариант-1-yolov8-ВЫБРАН"><a class="header" href="#Вариант-1-yolov8-ВЫБРАН">Вариант 1: YOLOv8 ВЫБРАН</a></h3>
 <p><strong>За</strong>:</p>
 <ul>
-<li>✅ <strong>Speed</strong>: ~30 FPS на GPU (1080p)</li>
-<li>✅ <strong>Accuracy</strong>: mAP 90%+ на COCO vehicles</li>
-<li>✅ <strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
-<li>✅ <strong>Multi-object</strong>: детектирует vehicle + license_plate одновременно</li>
-<li>✅ <strong>Active development</strong>: Ultralytics регулярно обновляет</li>
+<li><strong>Speed</strong>: ~30 FPS на GPU (1080p)</li>
+<li><strong>Accuracy</strong>: mAP 90%+ на COCO vehicles</li>
+<li><strong>Fine-tuning</strong>: легко дообучить на custom dataset</li>
+<li><strong>Multi-object</strong>: детектирует vehicle + license_plate одновременно</li>
+<li><strong>Active development</strong>: Ultralytics регулярно обновляет</li>
 </ul>
 <p><strong>Против</strong>:</p>
 <ul>
-<li>⚠️ Требуется GPU для real-time</li>
+<li>Требуется GPU для real-time</li>
 </ul>
 <hr />
 <h2 id="Решение-2"><a class="header" href="#Решение-2">Решение</a></h2>
@@ -1594,16 +1594,16 @@ Total: ~120ms per vehicle
 <h2 id="Последствия-2"><a class="header" href="#Последствия-2">Последствия</a></h2>
 <h3 id="Позитивные-2"><a class="header" href="#Позитивные-2">Позитивные:</a></h3>
 <ul>
-<li>✅ Высокая точность распознавания (соответствует требованиям)</li>
-<li>✅ Low latency (подходит для real-time)</li>
-<li>✅ Open-source модели (нет лицензионных сборов)</li>
-<li>✅ Активно развиваются (можем обновляться)</li>
-<li>✅ Large community (много ресурсов для troubleshooting)</li>
+<li>Высокая точность распознавания (соответствует требованиям)</li>
+<li>Low latency (подходит для real-time)</li>
+<li>Open-source модели (нет лицензионных сборов)</li>
+<li>Активно развиваются (можем обновляться)</li>
+<li>Large community (много ресурсов для troubleshooting)</li>
 </ul>
 <h3 id="Негативные-2"><a class="header" href="#Негативные-2">Негативные:</a></h3>
 <ul>
 <li>
-<p>⚠️ <strong>GPU dependency</strong>: без GPU система не работает</p>
+<p><strong>GPU dependency</strong>: без GPU система не работает</p>
 <ul>
 <li>Стоимость: NVIDIA RTX 3090 ~$1500</li>
 <li>Энергопотребление: 350W per GPU</li>
@@ -1611,13 +1611,13 @@ Total: ~120ms per vehicle
 </ul>
 </li>
 <li>
-<p>⚠️ <strong>Model size</strong>: 250MB+ (требуют RAM/VRAM)</p>
+<p><strong>Model size</strong>: 250MB+ (требуют RAM/VRAM)</p>
 <ul>
 <li>VRAM: 8GB минимум (12GB рекомендуется)</li>
 </ul>
 </li>
 <li>
-<p>⚠️ <strong>Fine-tuning required</strong>: для максимальной accuracy нужно дообучить на custom dataset</p>
+<p><strong>Fine-tuning required</strong>: для максимальной accuracy нужно дообучить на custom dataset</p>
 <ul>
 <li>Dataset collection: 10K+ примеров</li>
 <li>Training time: 3-5 дней на GPU</li>
