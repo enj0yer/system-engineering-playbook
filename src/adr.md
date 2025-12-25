@@ -1,3 +1,3 @@
-- [Выбор базы данных](./ADR/30_adr_database_choice.md)
-- [Выбор брокера сообщений](./ADR/31_adr_kafka_broker.md)
-- [Выбор модели ML](./ADR/32_adr_ml_models.md)
+- [Выбор базы данных](./ADR/adr_database_choice.md)
+- [Выбор брокера сообщений](./ADR/adr_kafka_broker.md)
+- [Выбор модели ML](./ADR/adr_ml_models.md)
