@@ -28,3 +28,5 @@ Github сообщает, что увидел настройки workflows. Те�
 Она будет такого вида: https://[github_user_name].github.io/system-engineering-playbook/
 
 ![img6.png](img/img6.png)
+
+# Init workflow
