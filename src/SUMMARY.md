@@ -15,6 +15,7 @@
     - [Проход пользователя](./UML/uml-user-pass.md)
     - [Определение пользователя из черного списка](./UML/uml-detect-blacklisted.md)
     - [Сервис аудита](./UML/uml-audit-service.md)
+    - [Контроль доступа](./UML/uml-access-control.md)
 - [ADR](./adr.md)
     - [Выбор базы данных](./ADR/30_adr_database_choice.md)
     - [Выбор брокера сообщений](./ADR/31_adr_kafka_broker.md)

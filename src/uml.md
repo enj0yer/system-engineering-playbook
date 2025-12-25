@@ -3,3 +3,4 @@
 - [Проход пользователя](./UML/uml-user-pass.md)
 - [Определение пользователя из черного списка](./UML/uml-detect-blacklisted.md)
 - [Сервис аудита](./UML/uml-audit-service.md)
+- [Контроль доступа](./UML/uml-access-control.md)
