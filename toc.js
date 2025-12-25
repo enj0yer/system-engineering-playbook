@@ -8,7 +8,7 @@ class MDBookSidebarScrollbox extends HTMLElement {
         super();
     }
     connectedCallback() {
-        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><a href="md.html"><strong aria-hidden="true">1.</strong> Техническая документация</a></li></ol>';
+        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><a href="md.html"><strong aria-hidden="true">1.</strong> Техническая документация</a></li><li class="chapter-item expanded "><a href="c4.html"><strong aria-hidden="true">2.</strong> C4</a></li><li class="chapter-item expanded "><a href="idef0.html"><strong aria-hidden="true">3.</strong> IDEF0</a></li><li class="chapter-item expanded "><a href="idef3.html"><strong aria-hidden="true">4.</strong> IDEF3</a></li><li class="chapter-item expanded "><a href="dfd.html"><strong aria-hidden="true">5.</strong> DFD</a></li><li class="chapter-item expanded "><a href="uml.html"><strong aria-hidden="true">6.</strong> UML</a></li><li class="chapter-item expanded "><a href="bpmn.html"><strong aria-hidden="true">7.</strong> BPMN</a></li><li class="chapter-item expanded "><a href="adr.html"><strong aria-hidden="true">8.</strong> ADR</a></li><li class="chapter-item expanded "><a href="swagger.html"><strong aria-hidden="true">9.</strong> Swagger</a></li></ol>';
         // Set the current, active page, and reveal it if it's hidden
         let current_page = document.location.href.toString().split("#")[0].split("?")[0];
         if (current_page.endsWith("/")) {
