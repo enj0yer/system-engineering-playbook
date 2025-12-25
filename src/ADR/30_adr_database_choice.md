@@ -152,9 +152,7 @@
 
 ## Связанные решения
 
-- [ADR-002: Выбор Redis для кэширования](./30_adr_redis_cache.md)
 - [ADR-003: Выбор Apache Kafka как message broker](./30_adr_kafka_broker.md)
-- [ADR-004: Выбор Faiss для векторного поиска](./30_adr_faiss_vector_search.md)
 
 ---
 

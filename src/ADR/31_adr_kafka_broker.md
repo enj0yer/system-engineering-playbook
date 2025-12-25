@@ -205,8 +205,6 @@ audit.system            - системные события
 ## Связанные решения
 
 - [ADR-001: Выбор PostgreSQL](./30_adr_database_choice.md)
-- [ADR-003: Микросервисная архитектура](./31_adr_microservices.md)
-- [ADR-005: Event-driven architecture](./32_adr_event_driven.md)
 
 ---
 

@@ -265,8 +265,6 @@ Total: ~120ms per vehicle
 ## Связанные решения
 
 - [ADR-002: Выбор Kafka](./31_adr_kafka_broker.md)
-- [ADR-004: Выбор Faiss для vector search](./32_adr_faiss.md)
-- [ADR-006: GPU hardware requirements](./33_adr_gpu.md)
 
 ---
 
