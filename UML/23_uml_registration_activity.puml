@@ -1,0 +1,167 @@
+@startuml UML_Registration_Activity
+
+title UML Activity Diagram - Процесс регистрации пользователя
+
+|HR менеджер|
+start
+:Открыть форму\nрегистрации;
+
+:Ввести персональные\nданные (ФИО, должность,\nподразделение, контакты);
+
+|Система|
+:Валидировать\nформат данных;
+
+if (Данные корректны?) then (нет)
+  |HR менеджер|
+  :Показать ошибки\nвалидации;
+  :Исправить данные;
+  detach
+else (да)
+endif
+
+:Проверить уникальность\nemail и телефона;
+
+if (Email уникален?) then (нет)
+  |HR менеджер|
+  :Ошибка: пользователь\nс таким email существует;
+  stop
+else (да)
+endif
+
+|Система|
+:Генерировать\nUser ID (UUID);
+
+|HR менеджер|
+:Загрузить фотографии\nлица (5+ шт);
+
+note right
+  **Способы загрузки**:
+  - С веб-камеры (live capture)
+  - Загрузка файлов
+  - Импорт из HR системы
+end note
+
+|Система|
+fork
+  :Проверить качество\nфото #1;
+fork again
+  :Проверить качество\nфото #2;
+fork again
+  :Проверить качество\nфото #3;
+fork again
+  :Проверить качество\nфото #4;
+fork again
+  :Проверить качество\nфото #5;
+end fork
+
+note right
+  **Проверка качества**:
+  - Детекция лица
+  - Размер лица ≥30%
+  - Разрешение ≥640×640
+  - Размытие (blur check)
+  - Освещение
+end note
+
+if (Все фото прошли\nпроверку?) then (нет)
+  |HR менеджер|
+  :Заменить\nнекачественные фото;
+  detach
+else (да)
+endif
+
+|Система|
+:Нормализация\nизображений;
+
+note right
+  - Alignment по landmarks
+  - Resize 112×112
+  - Нормализация яркости
+  - Цветокоррекция
+end note
+
+:Генерация face\nembeddings (GPU);
+
+note right
+  **ML модель**: ArcFace
+  - Inference для 5 фото
+  - 5 × 512-dim векторов
+  - Усреднение векторов
+  - L2 нормализация
+  
+  **Время**: ~500ms
+end note
+
+fork
+  :Сохранить оригиналы\nфото в MinIO;
+fork again
+  :Сохранить embeddings\nв PostgreSQL;
+fork again
+  :Индексировать\nв Faiss (vector DB);
+end fork
+
+if (Регистрировать\nтранспорт?) then (да)
+  |HR менеджер|
+  :Ввести данные авто\n(номер, марка, модель);
+  
+  |Система|
+  :Валидировать\nномер (формат RU);
+  
+  :Сохранить в таблицу\nvehicles;
+else (нет)
+endif
+
+|Администратор|
+:Назначить права\nдоступа;
+
+note right
+  **Параметры**:
+  - Роль (employee/visitor)
+  - Зоны доступа
+  - Временные ограничения
+  - Срок действия
+end note
+
+|Система|
+:Сохранить правила\nв access_rights;
+
+:BEGIN TRANSACTION;
+
+fork
+  :INSERT INTO users;
+fork again
+  :INSERT INTO biometrics;
+fork again
+  :INSERT INTO access_rights;
+fork again
+  :INSERT INTO vehicles\n(если есть);
+end fork
+
+if (Транзакция\nуспешна?) then (нет)
+  :ROLLBACK;
+  :Удалить файлы\nиз MinIO;
+  |HR менеджер|
+  :Ошибка сохранения;
+  stop
+else (да)
+  :COMMIT;
+endif
+
+:Публикация события\nв Kafka (user.registered);
+
+fork
+  :Отправить email\nновому пользователю;
+fork again
+  :Уведомить охрану\nо новом доступе;
+fork again
+  :Обновить кэш\nRedis;
+end fork
+
+|HR менеджер|
+:Получить подтверждение\nрегистрации;
+
+:Показать\nUser ID и статус;
+
+stop
+
+@enduml

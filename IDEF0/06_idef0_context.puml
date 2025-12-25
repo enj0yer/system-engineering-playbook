@@ -1,0 +1,46 @@
+@startuml IDEF0_Context
+!define RECTANGLE class
+
+skinparam defaultTextAlignment center
+skinparam classBackgroundColor LightYellow
+skinparam classBorderColor Black
+skinparam arrowColor Black
+
+title IDEF0 - Контекстная диаграмма A-0: Система умного КПП
+
+rectangle "Видеопотоки\nс камер" as input1
+rectangle "Запросы на\nрегистрацию" as input2
+rectangle "События\nраспознавания" as input3
+
+rectangle "**A0**\n\nУПРАВЛЕНИЕ\nКОНТРОЛЬНО-ПРОПУСКНЫМ\nПУНКТОМ" as A0 #LightBlue
+
+rectangle "Решения о\nдоступе" as output1
+rectangle "Отчеты и\nаналитика" as output2
+rectangle "Уведомления\nи алерты" as output3
+
+rectangle "Администраторы\nОператоры охраны" as control1
+rectangle "Политики безопасности\nПравила доступа" as control2
+
+rectangle "Серверы обработки\nБазы данных\nML модели\nКонтроллеры доступа" as mechanism
+
+input1 -right-> A0 : "RTSP потоки"
+input2 -right-> A0 : "Данные пользователей"
+input3 -right-> A0 : "Детекции"
+
+A0 -right-> output1 : "ALLOW/DENY"
+A0 -right-> output2 : "Reports"
+A0 -right-> output3 : "Alerts"
+
+control1 -down-> A0 : "Управление"
+control2 -down-> A0 : "Конфигурация"
+
+mechanism -up-> A0 : "Ресурсы"
+
+note right of A0
+  **ЦЕЛЬ**: Автоматизация контроля доступа
+  на КПП с использованием компьютерного зрения
+  
+  **ТОЧКА ЗРЕНИЯ**: Система безопасности объекта
+end note
+
+@enduml

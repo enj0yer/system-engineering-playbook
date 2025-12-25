@@ -1,0 +1,156 @@
+@startuml UML_Registration_Sequence
+
+title UML Sequence Diagram - Регистрация пользователя
+
+actor "HR менеджер" as HR
+participant "Web UI" as UI
+participant "API Gateway" as Gateway
+participant "User Service" as UserSvc
+participant "Recognition\nService" as RecSvc
+participant "PostgreSQL" as DB
+participant "Redis" as Cache
+participant "MinIO" as Storage
+participant "Kafka" as Kafka
+
+== Инициация регистрации ==
+
+HR -> UI: Открыть форму\nрегистрации
+activate UI
+UI --> HR: Форма ввода данных
+deactivate UI
+
+HR -> UI: Ввести персональные\nданные + загрузить фото
+activate UI
+
+UI -> Gateway: POST /api/v1/users/register\n{user_data, photos[]}
+activate Gateway
+
+Gateway -> Gateway: Валидация JWT токена
+Gateway -> Gateway: Проверка прав доступа
+
+Gateway -> UserSvc: registerUser(user_data, photos)
+activate UserSvc
+
+== Валидация данных ==
+
+UserSvc -> UserSvc: Валидация формата\nданных (email, phone, etc)
+
+UserSvc -> DB: SELECT COUNT(*) FROM users\nWHERE email = ?
+activate DB
+DB --> UserSvc: count = 0 (unique)
+deactivate DB
+
+UserSvc -> UserSvc: Генерация\nUser ID (UUID)
+
+== Обработка биометрии ==
+
+loop для каждого фото (5 шт)
+    UserSvc -> UserSvc: Проверка качества фото\n(размер, формат, blur)
+end
+
+UserSvc -> RecSvc: generateEmbeddings(photos[])
+activate RecSvc
+
+RecSvc -> RecSvc: Детекция лиц\n(RetinaFace)
+
+note right of RecSvc
+  Обработка на GPU:
+  - Детекция: ~50ms × 5
+  - Alignment: ~20ms × 5
+  - Inference: ~100ms × 5
+  
+  Total: ~500ms
+end note
+
+loop для каждого фото
+    RecSvc -> RecSvc: Extract landmarks
+    RecSvc -> RecSvc: Alignment (affine transform)
+    RecSvc -> RecSvc: Resize to 112×112
+    RecSvc -> RecSvc: ArcFace inference\n(512-dim vector)
+end
+
+RecSvc -> RecSvc: Усреднение векторов\n(mean pooling)
+RecSvc -> RecSvc: L2 нормализация
+
+RecSvc --> UserSvc: face_embedding (512-dim)
+deactivate RecSvc
+
+== Сохранение данных ==
+
+UserSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+UserSvc -> DB: INSERT INTO users\n(id, name, email, ...)
+
+UserSvc -> DB: INSERT INTO biometrics\n(user_id, embedding, ...)
+
+UserSvc -> DB: INSERT INTO access_rights\n(user_id, role, zones, ...)
+
+alt Если есть транспорт
+    UserSvc -> DB: INSERT INTO vehicles\n(user_id, plate_number, ...)
+end
+
+UserSvc -> DB: COMMIT
+DB --> UserSvc: SUCCESS
+deactivate DB
+
+par Параллельное сохранение медиа
+    UserSvc -> Storage: PUT /biometrics/{user_id}/\noriginal_photos[]
+    activate Storage
+    Storage --> UserSvc: URLs сохраненных файлов
+    deactivate Storage
+else Индексация в Faiss
+    UserSvc -> RecSvc: indexEmbedding(user_id, embedding)
+    activate RecSvc
+    RecSvc -> RecSvc: Добавить в\nFaiss IndexFlatIP
+    RecSvc --> UserSvc: indexed
+    deactivate RecSvc
+end
+
+== Публикация события ==
+
+UserSvc -> Kafka: publish("user.registered",\n{user_id, timestamp, ...})
+activate Kafka
+Kafka --> UserSvc: ACK
+deactivate Kafka
+
+== Кэширование ==
+
+UserSvc -> Cache: SET user:{user_id}\n{user_data} EX 600
+activate Cache
+Cache --> UserSvc: OK
+deactivate Cache
+
+UserSvc -> Cache: SET access_rights:{user_id}\n{rights_data} EX 600
+Cache --> UserSvc: OK
+
+== Ответ клиенту ==
+
+UserSvc --> Gateway: {user_id, status: "created"}
+deactivate UserSvc
+
+Gateway --> UI: HTTP 201 Created\n{user_id, message}
+deactivate Gateway
+
+UI --> HR: Подтверждение:\n"Пользователь успешно\nзарегистрирован"
+deactivate UI
+
+== Асинхронные уведомления ==
+
+note over Kafka
+  Consumers обрабатывают
+  событие "user.registered"
+end note
+
+Kafka -> "Audit Service": Событие user.registered
+activate "Audit Service"
+"Audit Service" -> DB: INSERT INTO events\n(event_type, user_id, ...)
+deactivate "Audit Service"
+
+Kafka -> "Notification Service": Событие user.registered
+activate "Notification Service"
+"Notification Service" -> "Notification Service": Формирование\nwelcome email
+"Notification Service" -> "Email Server": Отправить email\nновому пользователю
+deactivate "Notification Service"
+
+@enduml

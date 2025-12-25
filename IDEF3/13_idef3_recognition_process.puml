@@ -1,0 +1,206 @@
+@startuml IDEF3_Recognition
+!define RECTANGLE class
+
+title IDEF3 - Процесс распознавания лица (A2)
+
+skinparam activity {
+  BackgroundColor LightBlue
+  BorderColor Black
+  ArrowColor Black
+}
+
+|Камера|
+start
+:Непрерывная передача\nRTSP потока;
+note right
+  **Действие 2.1**
+  Protocol: RTSP/H.264
+  Resolution: 1920×1080
+  FPS: 25
+  Continuous process
+end note
+
+|Recognition Service|
+:Подключение к\nRTSP потоку;
+note right
+  **Действие 2.2**
+  Library: FFmpeg/OpenCV
+  Connection: rtsp://camera_ip:554/stream
+  Reconnect on failure
+end note
+
+repeat
+  :Захват кадра\nиз потока;
+  note right
+    **Действие 2.3 (цикл)**
+    Sampling: каждый 3-й кадр (~8 FPS)
+    Format: numpy array (H×W×3)
+    Time: ~10ms
+  end note
+
+  :Детекция лиц\nв кадре;
+  note right
+    **Действие 2.4**
+    Model: RetinaFace
+    Output: BBox + 5 landmarks
+    Min face size: 80×80 px
+    GPU: batch processing
+    Time: ~50ms
+  end note
+
+  if (Лица обнаружены?) then (нет)
+    :Пропуск кадра;
+    note right
+      **Действие 2.5a**
+      No face → continue to next frame
+    end note
+  else (да)
+    :Извлечение\nRoI лиц;
+    note right
+      **Действие 2.5b**
+      Crop faces using BBox
+      Multiple faces → process each
+    end note
+
+    fork
+      :Выравнивание\nпо landmarks;
+      note right
+        **Действие 2.6**
+        Alignment: affine transform
+        Target: centered face
+        Resize: 112×112
+      end note
+
+      :Генерация\nface embedding;
+      note right
+        **Действие 2.7**
+        Model: ArcFace (ResNet-100)
+        Output: 512-dim vector
+        Normalization: L2
+        GPU inference
+        Time: ~100ms
+      end note
+    fork again
+      :Сохранение\ncrop лица;
+      note right
+        **Действие 2.8 (параллельно)**
+        Storage: MinIO
+        Path: /events/{date}/{event_id}.jpg
+        Format: JPEG (quality 95)
+        Async upload
+      end note
+    end fork
+
+    :Поиск в базе\nembeddings;
+    note right
+      **Действие 2.9**
+      Vector DB: Faiss (IndexFlatIP)
+      Query: top-1 similar
+      Metric: Cosine similarity
+      Time: ~10-20ms
+    end note
+
+    if (Сходство ≥ порога?) then (да)
+      :Получение\nUser ID;
+      note right
+        **Действие 2.10a**
+        Threshold: 0.6 (configurable)
+        Match found → identified
+        Confidence: similarity score
+      end note
+
+      :Проверка в\nRedis cache;
+      note right
+        **Действие 2.11**
+        Key: user:{user_id}
+        TTL: 10 min
+        Purpose: быстрый доступ к данным
+      end note
+
+      if (Данные в кэше?) then (да)
+        :Получение из\nRedis;
+        note right
+          **Действие 2.12a**
+          Fast path: ~1ms
+        end note
+      else (нет)
+        :Запрос из\nPostgreSQL;
+        note right
+          **Действие 2.12b**
+          Query: SELECT * FROM users WHERE id=?
+          Time: ~5-10ms
+        end note
+
+        :Кэширование\nв Redis;
+        note right
+          **Действие 2.13**
+          Cache user data for future
+        end note
+      endif
+
+      :Формирование события\nраспознавания;
+      note right
+        **Действие 2.14**
+        Event structure:
+        {
+          "event_id": "uuid",
+          "timestamp": "ISO8601",
+          "user_id": "12345",
+          "user_name": "Иван Иванов",
+          "confidence": 0.97,
+          "camera_id": "cam_entrance_1",
+          "zone": "main_entrance",
+          "image_url": "s3://...",
+          "face_bbox": [x, y, w, h]
+        }
+      end note
+    else (нет)
+      :Неизвестное лицо;
+      note right
+        **Действие 2.10b**
+        No match found
+        Confidence < threshold
+        Action: alert or log as "unknown"
+      end note
+
+      :Формирование события\n"unknown face";
+      note right
+        **Действие 2.15**
+        Event: unidentified person
+        Alert: notify security
+        Save image for review
+      end note
+    endif
+
+    :Публикация события\nв Kafka;
+    note right
+      **Действие 2.16**
+      Topic: recognition.face
+      Async: fire-and-forget
+      Consumer: Access Control Service
+      Time: ~5ms
+    end note
+
+    :Обновление метрик\nPrometheus;
+    note right
+      **Действие 2.17**
+      Metrics:
+      - recognition_total (counter)
+      - recognition_confidence (histogram)
+      - recognition_latency (histogram)
+    end note
+  endif
+
+repeat while (Поток активен?) is (да)
+->нет;
+
+:Закрытие\nRTSP соединения;
+note right
+  **Действие 2.18 (конец процесса)**
+  Cleanup resources
+  Log disconnection
+end note
+
+stop
+
+@enduml

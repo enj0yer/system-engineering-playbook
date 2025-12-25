@@ -1,0 +1,266 @@
+@startuml DFD_AccessControl
+!define RECTANGLE class
+
+title DFD Уровень 2 - Процесс 3: Контроль доступа
+
+skinparam roundcorner 20
+skinparam defaultTextAlignment center
+
+' Внешние сущности
+actor "Оператор охраны" as guard #LightBlue
+database "Контроллеры\nдоступа" as controllers #LightGreen
+
+' Подпроцессы контроля доступа
+circle "**3.1**\n\nПолучение\nсобытия\nраспознавания" as p31 #Orange
+circle "**3.2**\n\nПроверка\nправ\nдоступа" as p32 #Orange
+circle "**3.3**\n\nПроверка\nчерного\nсписка" as p33 #Orange
+circle "**3.4**\n\nПринятие\nрешения" as p34 #Orange
+circle "**3.5**\n\nУправление\nфизическими\nбарьерами" as p35 #Orange
+
+' Хранилища данных
+database "D3.1: Пользователи\n(users)" as db_users #Yellow
+database "D3.2: Права доступа\n(access_rights)" as db_rights #Yellow
+database "D3.3: Черный список\n(blacklist)" as db_blacklist #Yellow
+database "D3.4: Кэш правил\n(Redis)" as db_cache #Yellow
+database "D3.5: История\nпроходов" as db_history #Yellow
+
+' Kafka
+queue "Kafka" as kafka #Pink
+
+' Потоки данных
+
+' Процесс 3.1: Получение события
+kafka --> p31 : "D1: Событие\nrecognition.face/vehicle"
+p31 --> p32 : "D2: User ID,\nconfidence, zone,\ntimestamp"
+
+' Процесс 3.2: Проверка прав
+db_cache --> p32 : "D3: Кэшированные\nправа доступа"
+db_rights --> p32 : "D4: Правила из БД\n(если нет в кэше)"
+db_users --> p32 : "D5: Статус\nучетной записи"
+p32 --> db_cache : "D6: Обновление\nкэша"
+p32 --> p34 : "D7: Результат\nпроверки прав"
+
+' Процесс 3.3: Проверка черного списка
+p31 --> p33 : "D8: User ID"
+db_blacklist --> p33 : "D9: Записи\nчерного списка"
+p33 --> p34 : "D10: Флаг\nблокировки"
+
+' Процесс 3.4: Принятие решения
+guard --> p34 : "D11: Ручное\nразрешение (опц.)"
+db_history --> p34 : "D12: Последний\nпроход (anti-tailgating)"
+p34 --> p35 : "D13: Решение\nALLOW/DENY"
+p34 --> kafka : "D14: Событие\naccess.decision"
+p34 --> guard : "D15: Алерт\n(при DENY)"
+
+' Процесс 3.5: Управление барьерами
+p35 --> controllers : "D16: Команды\nWiegand/RS-485"
+controllers --> p35 : "D17: Статус\nвыполнения"
+p35 --> db_history : "D18: Запись\nпрохода"
+p35 --> kafka : "D19: Событие\nbarrier.opened"
+
+note right of p31
+  **Процесс 3.1**:
+  **Kafka Consumer**:
+  - Consumer group: access-control
+  - Topics: recognition.face, recognition.vehicle
+  - Auto-commit: false (manual after processing)
+  
+  **Десериализация**:
+  - JSON → Python object
+  - Validation по schema
+  
+  **Извлечение данных**:
+  - user_id (required)
+  - confidence (float 0-1)
+  - zone (camera location)
+  - timestamp (ISO8601)
+  
+  **Обработка**:
+  - Low confidence (< 0.6) → ручная проверка
+  - Medium/High → автоматическая проверка
+  
+  **Время**: <10ms
+end note
+
+note right of p32
+  **Процесс 3.2**:
+  **Проверяемые параметры**:
+  
+  1. **Статус учетной записи**:
+     - ACTIVE / SUSPENDED / DELETED
+     - Query: users.status
+  
+  2. **Роль и зона**:
+     - Role: employee/visitor/contractor
+     - Allowed zones: [zone1, zone2, ...]
+     - Check: current_zone in allowed_zones?
+  
+  3. **Временные ограничения**:
+     - Рабочие часы: 08:00-18:00
+     - Дни недели: пн-пт
+     - Особые даты (праздники, выходные)
+  
+  4. **Срок действия**:
+     - Valid_until date
+     - Check: current_date <= valid_until?
+  
+  **Кэширование** (Redis):
+  - Key: access_rights:{user_id}
+  - TTL: 10 минут
+  - Invalidation: при изменении прав
+  
+  **Fallback**: PostgreSQL (если нет в кэше)
+  
+  **Время**: ~5ms (cache) / ~10ms (DB)
+end note
+
+note right of p33
+  **Процесс 3.3**:
+  **Черный список**:
+  
+  **Причины блокировки**:
+  - Постоянная (увольнение, нарушения)
+  - Временная (расследование)
+  - Автоматическая (N попыток взлома)
+  
+  **Структура записи**:
+  ```sql
+  blacklist (
+    user_id INT,
+    reason VARCHAR,
+    blocked_at TIMESTAMP,
+    blocked_until TIMESTAMP,  -- NULL = permanent
+    blocked_by INT  -- admin user_id
+  )
+  ```
+  
+  **Индекс**: B-tree на user_id
+  
+  **Query**: 
+  ```sql
+  SELECT * FROM blacklist
+  WHERE user_id = ? 
+    AND (blocked_until IS NULL 
+         OR blocked_until > NOW())
+  ```
+  
+  **Время**: ~5ms
+  
+  **При обнаружении**:
+  - Немедленный DENY
+  - HIGH priority alert охране
+  - Notification: Telegram, Push
+end note
+
+note right of p34
+  **Процесс 3.4**:
+  **Логика принятия решения**:
+  
+  ```python
+  if user in blacklist:
+      return DENY, alert_security()
+  
+  if confidence < 0.6:
+      return PENDING_MANUAL_CHECK
+  
+  if account_status != ACTIVE:
+      return DENY
+  
+  if zone not in allowed_zones:
+      return DENY, log_unauthorized_attempt()
+  
+  if current_time not in allowed_hours:
+      return DENY, notify_manager()
+  
+  # Anti-tailgating check
+  last_pass = get_last_pass_time(user_id)
+  if (current_time - last_pass) < 30_seconds:
+      return DENY, reason="too_fast"
+  
+  # All checks passed
+  return ALLOW
+  ```
+  
+  **Confidence handling**:
+  - ≥0.95: AUTO ALLOW (fast track)
+  - 0.6-0.95: ALLOW + log (review later)
+  - <0.6: MANUAL_CHECK (wait operator)
+  
+  **Operator timeout**: 30 seconds
+  - If no response → DENY (safe default)
+  
+  **Metrics**:
+  - Decision latency: <100ms (p99)
+  - ALLOW rate: ~95%
+  - DENY rate: ~5%
+end note
+
+note right of p35
+  **Процесс 3.5**:
+  **Протоколы управления**:
+  
+  **Wiegand** (26/34-bit):
+  - Простой, надежный
+  - Data + Clock линии
+  - Pulse width: 50μs
+  - Interval: 1ms
+  - Command: card_id (mapped from user_id)
+  
+  **RS-485 / Modbus RTU**:
+  - Function code: 0x06 (Write Single Register)
+  - Register: BARRIER_CONTROL
+  - Value: 0x0001 (OPEN), 0x0000 (CLOSE)
+  - Timeout: 500ms
+  - Retry: 3 attempts
+  
+  **Команды**:
+  - OPEN: открыть барьер
+  - CLOSE: закрыть барьер
+  - STATUS: запрос состояния
+  
+  **Мониторинг**:
+  - Poll interval: 5 секунд
+  - States: CLOSED, OPENING, OPEN, CLOSING, ERROR
+  
+  **Failsafe**:
+  - При потере связи → CLOSE
+  - При пожарной тревоге → OPEN ALL
+  - Emergency override: ручное управление
+  
+  **Время выполнения**: ~100-200ms
+  
+  **Logging**:
+  - Все команды и статусы
+  - Timestamp, user_id, result
+end note
+
+note bottom of db_history
+  **История проходов**:
+  
+  **Таблица**: pass_history
+  ```sql
+  (
+    pass_id BIGSERIAL,
+    user_id INT,
+    zone VARCHAR,
+    direction VARCHAR,  -- IN/OUT
+    timestamp TIMESTAMP,
+    decision VARCHAR,   -- ALLOW/DENY
+    confidence FLOAT,
+    image_url VARCHAR
+  )
+  ```
+  
+  **Индексы**:
+  - (user_id, timestamp) для anti-tailgating
+  - (timestamp) для отчетов
+  
+  **Retention**: 1 год (audit requirement)
+  
+  **Использование**:
+  - Anti-tailgating check (last 30 sec)
+  - Статистика посещаемости
+  - Расследования инцидентов
+end note
+
+@enduml

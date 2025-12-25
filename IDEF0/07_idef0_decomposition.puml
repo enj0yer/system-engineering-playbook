@@ -1,0 +1,104 @@
+@startuml IDEF0_Decomposition
+!define RECTANGLE class
+
+skinparam defaultTextAlignment center
+skinparam classBackgroundColor LightYellow
+skinparam classBorderColor Black
+skinparam arrowColor Black
+
+title IDEF0 - Декомпозиция A0: Управление КПП (4 основные функции)
+
+' Входы
+rectangle "Видеопотоки" as input1 #LightGreen
+rectangle "Данные для\nрегистрации" as input2 #LightGreen
+rectangle "События\nсистемы" as input3 #LightGreen
+
+' Функции
+rectangle "**A1**\n\nРЕГИСТРАЦИЯ\nПОЛЬЗОВАТЕЛЕЙ" as A1 #LightBlue
+rectangle "**A2**\n\nРАСПОЗНАВАНИЕ\nЛИЦ И АВТО" as A2 #LightBlue
+rectangle "**A3**\n\nКОНТРОЛЬ\nДОСТУПА" as A3 #LightBlue
+rectangle "**A4**\n\nАУДИТ И\nЛОГИРОВАНИЕ" as A4 #LightBlue
+
+' Выходы
+rectangle "Профили\nпользователей" as output1 #LightCoral
+rectangle "События\nраспознавания" as output2 #LightCoral
+rectangle "Команды\nконтроллерам" as output3 #LightCoral
+rectangle "Отчеты и\nлоги событий" as output4 #LightCoral
+
+' Управление
+rectangle "HR менеджер\nАдминистратор" as control1 #Lavender
+rectangle "ML модели\nПараметры детекции" as control2 #Lavender
+rectangle "Правила доступа\nПолитики безопасности" as control3 #Lavender
+rectangle "Требования\nк отчетности" as control4 #Lavender
+
+' Механизмы
+rectangle "PostgreSQL\nRedis\nMinIO" as mech1 #Wheat
+rectangle "GPU сервер\nPyTorch\nOpenCV" as mech2 #Wheat
+rectangle "Kafka\nКонтроллеры\nдоступа" as mech3 #Wheat
+rectangle "Elasticsearch\nGrafana" as mech4 #Wheat
+
+' Входные потоки
+input2 -right-> A1 : "ФИО, фото,\nдолжность"
+input1 -right-> A2 : "RTSP"
+
+' Связи между функциями
+A1 -down-> A2 : "Биометрические\nданные"
+A2 -right-> A3 : "ID пользователя,\nconfidence"
+A1 -down-> A3 : "Права доступа"
+A3 -down-> A4 : "Решения\nо доступе"
+A2 -down-> A4 : "События\nраспознавания"
+A1 -down-> A4 : "Изменения\nпрофилей"
+
+input3 -down-> A4 : "Системные\nсобытия"
+
+' Выходные потоки
+A1 -right-> output1 : "User profiles"
+A2 -right-> output2 : "Recognition events"
+A3 -right-> output3 : "OPEN/CLOSE"
+A4 -right-> output4 : "Reports, analytics"
+
+' Управление (сверху)
+control1 -down-> A1 : "Управление\nпользователями"
+control2 -down-> A2 : "Конфигурация\nмоделей"
+control3 -down-> A3 : "Настройка\nправил"
+control4 -down-> A4 : "Параметры\nотчетности"
+
+' Механизмы (снизу)
+mech1 -up-> A1 : "Хранение\nданных"
+mech2 -up-> A2 : "Вычислительные\nресурсы"
+mech3 -up-> A3 : "Коммуникация,\nисполнение"
+mech4 -up-> A4 : "Аналитика,\nвизуализация"
+
+note bottom of A1
+  **A1**: Регистрация пользователей
+  - Ввод персональных данных
+  - Захват биометрии (5+ фото)
+  - Создание face embeddings
+  - Назначение прав доступа
+end note
+
+note bottom of A2
+  **A2**: Распознавание лиц и авто
+  - Детекция объектов (лица, номера)
+  - Извлечение признаков (embeddings)
+  - Сравнение с базой данных
+  - Генерация событий
+end note
+
+note bottom of A3
+  **A3**: Контроль доступа
+  - Проверка прав (роль, зона, время)
+  - Проверка черного списка
+  - Принятие решения (ALLOW/DENY)
+  - Управление барьерами
+end note
+
+note bottom of A4
+  **A4**: Аудит и логирование
+  - Запись всех событий
+  - Индексация для поиска
+  - Генерация отчетов
+  - Визуализация аналитики
+end note
+
+@enduml

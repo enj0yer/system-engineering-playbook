@@ -1,0 +1,37 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контекста (C4 Level 1) - Система умного КПП
+
+Person(security_guard, "Сотрудник охраны", "Оператор КПП, контролирует проход")
+Person(admin, "Администратор", "Управляет системой, настраивает правила доступа")
+Person(user, "Пользователь", "Сотрудник/посетитель, проходящий через КПП")
+Person(hr_manager, "HR менеджер", "Управляет данными сотрудников")
+
+System(checkpoint_system, "Система умного КПП", "Автоматизированная система контроля доступа на базе компьютерного зрения")
+
+System_Ext(cameras, "IP-камеры", "Камеры видеонаблюдения с поддержкой RTSP")
+System_Ext(access_controllers, "Контроллеры доступа", "Управление шлагбаумами/турникетами (Wiegand, RS-485)")
+System_Ext(notification_services, "Сервисы уведомлений", "Email, Telegram, Push-уведомления")
+System_Ext(time_tracking_system, "Система учета рабочего времени", "Внешняя система для интеграции данных о посещениях")
+System_Ext(erp_system, "ERP система", "1C, SAP - интеграция с кадровым учетом")
+
+Rel(security_guard, checkpoint_system, "Мониторит события в реальном времени, управляет доступом вручную", "Web UI")
+Rel(admin, checkpoint_system, "Настраивает систему, управляет пользователями", "Web UI / REST API")
+Rel(hr_manager, checkpoint_system, "Регистрирует новых сотрудников, обновляет данные", "Web UI / REST API")
+Rel(user, checkpoint_system, "Проходит через КПП", "Физическое присутствие перед камерой")
+
+Rel(checkpoint_system, cameras, "Получает видеопотоки", "RTSP")
+Rel(checkpoint_system, access_controllers, "Отправляет команды открытия/закрытия", "Wiegand, RS-485/Modbus")
+Rel(checkpoint_system, notification_services, "Отправляет уведомления и алерты", "SMTP, HTTP API")
+Rel(checkpoint_system, time_tracking_system, "Передает данные о проходах", "REST API / Webhook")
+Rel(checkpoint_system, erp_system, "Синхронизирует данные сотрудников", "REST API / File Export")
+
+Rel(cameras, checkpoint_system, "Передает видео в реальном времени", "H.264/H.265")
+Rel(user, cameras, "Попадает в поле зрения камеры", "")
+
+SHOW_LEGEND()
+
+@enduml
