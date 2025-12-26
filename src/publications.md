@@ -6,3 +6,6 @@
 
 ### Статья на Хабр
 [Ссылка](https://habr.com/ru/sandbox/267788/)
+
+### Статья на vc.ru
+[Ссылка](https://vc.ru/id5600610/2668691-raspoznavanie-obrazov-kak-rabotayet-tehnologiya-i-gde-primenyayetsya)
